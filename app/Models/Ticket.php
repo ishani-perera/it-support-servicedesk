@@ -176,6 +176,36 @@ class Ticket extends Model
     }
 
     /**
+     * Tickets the given user is allowed to SEE — the query-side twin of
+     * TicketPolicy::view(). Use it for every ticket list so a list can never
+     * show more than the policy would allow for a single record
+     * (a test asserts both agree).
+     *
+     *  - employee: tickets they requested
+     *  - support:  tickets currently assigned to them + the unassigned queue
+     *  - admin:    everything
+     *  - inactive users: nothing
+     *
+     * @param  Builder<Ticket>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if (! $user->is_active) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        match (true) {
+            $user->isAdmin() => null,
+            $user->isSupport() => $query->where(function (Builder $q) use ($user) {
+                $q->assignedTo($user)->orWhere(fn (Builder $inner) => $inner->unassigned());
+            }),
+            default => $query->createdBy($user),
+        };
+    }
+
+    /**
      * Eager-loads everything a ticket LIST row needs in a fixed number of
      * queries (no N+1). Models never load these automatically.
      *

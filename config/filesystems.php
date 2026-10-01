@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // SECURITY: do not expose the private disk through Laravel's
+            // built-in signed-URL route (`storage/{path}`). Attachments are
+            // streamed only by TicketAttachmentController after a policy check.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

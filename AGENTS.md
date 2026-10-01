@@ -33,6 +33,12 @@ a Node.js backend, Express, Python/Django/Flask, or any other framework.
   whose name does not end in `_testing`.
 - Demo data is **development only** and must never be seeded in production.
 - Never commit `.env`, credentials, or secrets.
+- Authorization (Phase 03): every route that touches a record is behind `['auth', 'active']`, binds the
+  record, then calls `$this->authorize(...)` — route-model binding is NOT authorization and `role:*`
+  middleware is only a coarse gate. Nested resources use `->scopeBindings()`. Lists use `Ticket::visibleTo($user)`.
+  Policies only ever DENY in `before()` (inactive users); abilities are granted explicitly. Never add a
+  public route without adding it to the allowlist in `tests/Feature/Security/RouteProtectionTest.php`.
+  Blade `@can` hides UI only. See `docs/SECURITY.md`.
 
 ## Common commands
 

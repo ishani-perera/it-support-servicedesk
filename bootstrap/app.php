@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,7 +16,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'role' => EnsureUserHasRole::class,
+            'active' => EnsureUserIsActive::class,
+        ]);
+
+        // `active` and `role` must run BEFORE route-model binding. Otherwise a
+        // user who is not allowed to see /admin/users/{user} would get 404 for
+        // ids that do not exist but 403 for ids that do — letting them probe
+        // which records exist. (Order: auth -> active -> role -> bindings.)
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureUserHasRole::class);
+        $middleware->prependToPriorityList(before: EnsureUserHasRole::class, prepend: EnsureUserIsActive::class);
+
+        // A password change (reset, or "change password") invalidates every
+        // OTHER session of that user: the session stores a hash of the password
+        // and is logged out when it no longer matches.
+        $middleware->authenticateSessions();
+
+        // Signed-in users who open /login etc. are sent to the landing page.
+        $middleware->redirectUsersTo(fn () => route('home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

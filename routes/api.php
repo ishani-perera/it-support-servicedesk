@@ -7,11 +7,12 @@
 |
 | This file is loaded by bootstrap/app.php under the "/api" prefix with the
 | "api" middleware group. Laravel Sanctum is installed and ready (token
-| table migration published), but NO endpoints are defined in Phase 01.
+| table migration published), but NO endpoints are defined yet.
 |
 | Planned structure for later phases:
 |   - Controllers: app/Http/Controllers/Api
 |   - Resources:   app/Http/Resources
-|   - Auth:        Route::middleware('auth:sanctum')
+|   - Auth:        Route::middleware(['auth:sanctum', 'active']) + $this->authorize()
+|                  (a valid token never bypasses Policies — see docs/SECURITY.md)
 |
 */

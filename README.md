@@ -8,11 +8,12 @@ Enterprise-style IT support ticket management system.
 | **PHP** | 8.2 – 8.4 (developed/tested on 8.4) |
 | **Database** | MySQL **8.0+** (developed/tested on 8.4) |
 | **Frontend** | Blade + Tailwind CSS 4 + vanilla JavaScript (Vite is used only to build assets) |
-| **API** | Laravel REST API with Sanctum *(no endpoints yet)* |
+| **API** | Laravel REST API with Sanctum *(authentication foundation only — no endpoints yet)* |
 | **Tests** | PHPUnit 11 |
 
-> **Status: Phase 02 — models, relationships, demo data and backend foundation.**
-> No UI, authentication or API endpoints yet (Phase 03+).
+> **Status: Phase 03 — authentication, role-based access control, policies and IDOR protection.**
+> No dashboards, ticket workflow UI or REST API endpoints yet (Phase 04+).
+> Authentication/authorization design, rules and test map: [`docs/SECURITY.md`](docs/SECURITY.md).
 > Schema, indexes, delete rules and soft-delete decisions: [`docs/DATABASE.md`](docs/DATABASE.md).
 > Project/stack rules for contributors and agents: [`AGENTS.md`](AGENTS.md).
 
@@ -68,7 +69,7 @@ All demo accounts share one **known, public** password. Never use these accounts
 | Employee | `employee1@example.com` … `employee8@example.com` | `ServiceDesk@2026` |
 
 Passwords are stored only as hashes (Laravel's hasher). The addresses use the reserved `example.com` domain.
-*(Login itself arrives in Phase 03.)*
+Sign in at `/login`.
 
 ## Tests
 
@@ -90,7 +91,8 @@ vendor/bin/pint
 * Every model has an explicit `$fillable`; privileged/system columns (`role`, `is_active`, `ticket_number`, `resolved_at`, `closed_at`, …) are not mass-assignable.
 * `app/Services/TicketAssignmentService` is the only supported way to assign/reassign: it closes the previous assignment and opens a new one in a locked transaction, so history is never overwritten.
 * Non-production environments enable `Model::preventLazyLoading()`, so N+1 queries fail loudly. Use `Ticket::withListRelations()` for list queries.
-* Ticket-number generation, the ticket workflow, authentication, authorisation, uploads and the REST API are **not** implemented yet.
+* Authentication uses Laravel's session guard and password broker; authorization is done by Policies (`app/Policies`) plus the `role` / `active` route middleware. Details: [`docs/SECURITY.md`](docs/SECURITY.md).
+* Ticket-number generation, the ticket workflow, dashboards/UI, uploads and the REST API are **not** implemented yet.
 
 ## Security notice — Laravel 11 end of life
 
