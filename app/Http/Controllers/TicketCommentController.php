@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTicketCommentRequest;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,17 @@ use Illuminate\Http\JsonResponse;
  */
 class TicketCommentController extends Controller
 {
+    public function store(StoreTicketCommentRequest $request, Ticket $ticket): JsonResponse
+    {
+        $comment = $ticket->comments()->create([
+            'user_id' => $request->user()->getKey(),
+            'body' => $request->validated('body'),
+            'is_internal' => $request->user()->isStaff() && $request->boolean('is_internal'),
+        ]);
+
+        return response()->json(['data' => ['id' => $comment->id, 'body' => $comment->body, 'is_internal' => $comment->is_internal]], 201);
+    }
+
     public function show(Ticket $ticket, TicketComment $comment): JsonResponse
     {
         $this->authorize('view', $comment);

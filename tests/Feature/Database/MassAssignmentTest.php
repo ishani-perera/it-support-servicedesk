@@ -70,11 +70,15 @@ class MassAssignmentTest extends TestCase
     {
         $ticket = new Ticket([
             'ticket_number' => 'INC-2026-999999',
+            'user_id' => 999,
+            'status_id' => 999,
             'resolved_at' => now(),
             'closed_at' => now(),
         ]);
 
         $this->assertNull($ticket->ticket_number);
+        $this->assertNull($ticket->user_id);
+        $this->assertNull($ticket->status_id);
         $this->assertNull($ticket->resolved_at);
         $this->assertNull($ticket->closed_at);
     }

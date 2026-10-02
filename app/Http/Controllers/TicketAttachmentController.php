@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTicketAttachmentRequest;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
+use App\Services\TicketAttachmentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -15,6 +18,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class TicketAttachmentController extends Controller
 {
+    public function store(StoreTicketAttachmentRequest $request, Ticket $ticket, TicketAttachmentService $attachments): JsonResponse
+    {
+        $comment = isset($request->validated()['comment_id'])
+            ? $ticket->comments()->findOrFail($request->validated('comment_id'))
+            : null;
+        $attachment = $attachments->store($ticket, $request->user(), $request->file('file'), $comment);
+
+        return response()->json(['data' => ['id' => $attachment->id, 'name' => $attachment->original_name, 'size' => $attachment->file_size]], 201);
+    }
+
     public function show(Ticket $ticket, TicketAttachment $attachment): StreamedResponse
     {
         $this->authorize('download', $attachment);

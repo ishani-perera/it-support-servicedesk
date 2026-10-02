@@ -86,7 +86,7 @@ class TicketModelTest extends TestCase
     {
         $fillable = (new Ticket)->getFillable();
 
-        foreach (['ticket_number', 'resolved_at', 'closed_at'] as $protected) {
+        foreach (['ticket_number', 'user_id', 'status_id', 'resolved_at', 'closed_at'] as $protected) {
             $this->assertNotContains($protected, $fillable);
         }
     }

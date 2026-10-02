@@ -60,7 +60,15 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Record-level authorization boundary (Policies). {ticket} etc. are bound
     // by id, then authorized — never trusted.
+    Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::patch('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
+    Route::patch('tickets/{ticket}/status', [TicketController::class, 'status'])->name('tickets.status');
+    Route::post('tickets/{ticket}/assignments', [TicketController::class, 'assign'])->name('tickets.assignments.store');
+    Route::delete('tickets/{ticket}/assignments/current', [TicketController::class, 'unassign'])->name('tickets.assignments.destroy');
+    Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])->name('tickets.comments.store');
+    Route::post('tickets/{ticket}/attachments', [TicketAttachmentController::class, 'store'])->name('tickets.attachments.store');
 
     Route::scopeBindings()->group(function () {
         Route::get('tickets/{ticket}/comments/{comment}', [TicketCommentController::class, 'show'])
