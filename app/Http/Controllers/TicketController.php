@@ -18,6 +18,7 @@ use App\Services\TicketAttachmentService;
 use App\Services\TicketQueryService;
 use App\Services\TicketService;
 use App\Services\TicketWorkflowService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -166,22 +167,20 @@ class TicketController extends Controller
         $ticket->load(['user', 'department', 'category', 'priority', 'status', 'currentAssignment.assignee']);
 
         if ($request->user()->isEmployee() && ! $request->expectsJson()) {
-            $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
-            $attachments = $ticket->attachments()->with(['comment', 'uploader'])->latest()->get();
-            $attachments->each(fn ($attachment) => $attachment->setRelation('ticket', $ticket));
-            $attachments = $attachments->filter(fn ($attachment) => $request->user()->can('view', $attachment))->values();
+            [$comments, $attachments] = $this->conversation($ticket, $request->user());
 
             return view('employee.tickets.show', compact('ticket', 'comments', 'attachments'));
         }
 
         if ($request->user()->isSupport() && ! $request->expectsJson()) {
+            [$comments, $attachments] = $this->conversation($ticket, $request->user());
             $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
             $assignments->each(fn ($item) => $item->setRelation('ticket', $ticket));
             $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
             $statuses = TicketStatus::query()->active()->ordered()->get();
             $assignees = User::active()->staff()->orderBy('name')->get();
 
-            return view('support.tickets.show', compact('ticket', 'assignments', 'statuses', 'assignees'));
+            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'statuses', 'assignees'));
         }
 
         $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
@@ -213,5 +212,24 @@ class TicketController extends Controller
             'assignment_history' => $assignments->map(fn ($item) => ['assignee' => $item->assignee->name, 'assigner' => $item->assigner->name, 'assigned_at' => $item->assigned_at, 'unassigned_at' => $item->unassigned_at, 'note' => $item->note]),
             'created_at' => $ticket->created_at,
         ]]);
+    }
+
+    /**
+     * Load only comment and attachment records the authorized ticket viewer may see.
+     *
+     * @return array{0: Collection, 1: Collection}
+     */
+    private function conversation(Ticket $ticket, User $viewer): array
+    {
+        $comments = $ticket->comments()->visibleTo($viewer)->with('user')->oldest()->get();
+        $attachments = $ticket->attachments()->with(['comment', 'uploader'])->latest()->get();
+        $attachments->each(fn ($attachment) => $attachment->setRelation('ticket', $ticket));
+        $attachments = $attachments->filter(fn ($attachment) => $viewer->can('view', $attachment))->values();
+        $comments->each(fn ($comment) => $comment->setRelation(
+            'attachments',
+            $attachments->where('comment_id', $comment->getKey())->values(),
+        ));
+
+        return [$comments, $attachments];
     }
 }

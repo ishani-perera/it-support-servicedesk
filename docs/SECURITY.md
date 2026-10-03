@@ -52,18 +52,18 @@ Who can do what (`TicketPolicy`; the full matrix is asserted cell-by-cell in `Ti
 
 | Ability | Employee | IT Support | Admin |
 |---|---|---|---|
-| view | own tickets (requester) | tickets **assigned to them** + the **unassigned queue** | all |
+| view | own tickets (requester) | all tickets, including tickets assigned to colleagues | all |
 | create | yes | yes | yes |
-| comment (public) | own tickets | tickets they can view | all |
-| internal note / see internal notes | never | tickets they can view | all |
-| upload attachment | own tickets | tickets they can view | all |
+| comment (public) | own tickets | tickets assigned to them + the unassigned queue | all |
+| internal note / see internal notes | never | may view notes on all tickets; may add notes only on tickets assigned to them + the unassigned queue | all |
+| upload attachment | own tickets | tickets assigned to them + the unassigned queue | all |
 | update status / priority / core fields | never | only tickets **assigned to them** | all |
 | assign / reassign / unassign | never | claim an unassigned ticket, or hand over one they hold; **not** take one from a colleague | all |
 | manage users, roles, reference data | never | never | yes |
 
 Notes:
 
-- A support agent does **not** see tickets held by another agent. When a ticket is reassigned, the previous agent loses access immediately (`test_access_follows_the_assignment_when_a_ticket_is_reassigned`).
+- Support agents share read access to ticket details, comments (including internal notes), attachments and assignment history. Reassignment does not revoke team read access, but only the current assignee may change status or ticket fields, and assignment actions remain limited to the unassigned queue or tickets the agent currently holds (`test_reassignment_changes_who_can_modify_status_but_not_team_view_access`).
 - `before()` in every policy only ever **denies** (inactive users — also covers stale Sanctum tokens). It never grants, because a blanket `admin => true` would also grant abilities that were never defined. Undefined abilities (e.g. deleting a ticket) are denied even for admin.
 - `Ticket::scopeVisibleTo($user)` is the query-side twin of `view`. **Use it for every list.** `test_visible_to_scope_matches_the_view_policy_…` fails if the two ever disagree.
 - This phase decides *who*, not *when*. Workflow rules (valid status transitions, closed tickets being read-only, who may re-open) are Phase 04.

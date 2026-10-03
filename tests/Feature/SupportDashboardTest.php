@@ -34,9 +34,9 @@ class SupportDashboardTest extends TestCase
             ->assertDontSee($this->ticketB->ticket_number);
         $stats = app(TicketQueryService::class)->supportStats($this->supportOne);
         $this->assertSame(1, $stats[0]['count']);
-        $this->assertSame(2, $stats[1]['count']);
+        $this->assertSame(3, $stats[1]['count']);
         $this->assertSame(1, $stats[2]['count']);
-        $this->assertSame(3, $stats[5]['count']);
+        $this->assertSame(4, $stats[5]['count']);
         $this->actingAs($this->employeeA)->get('/support/dashboard')->assertForbidden();
         $this->actingAs($this->admin)->get('/support/dashboard')->assertForbidden();
     }
@@ -54,13 +54,21 @@ class SupportDashboardTest extends TestCase
             ->assertOk()->assertSee($this->ticketA->ticket_number)->assertDontSee($this->ticketA2->ticket_number);
         $this->actingAs($this->supportOne)->get('/tickets?status=open&assignment=unassigned&view=board')
             ->assertOk()->assertSee('Unassigned')->assertSee($this->ticketA2->ticket_number)->assertDontSee($this->ticketB->ticket_number);
+        $this->actingAs($this->supportOne)->get('/tickets?assigned_to='.$this->supportTwo->id.'&view=board')
+            ->assertOk()->assertSee($this->ticketB->ticket_number)->assertDontSee($this->ticketA->ticket_number);
+        $this->actingAs($this->supportOne)->get('/tickets?view=board')->assertOk()
+            ->assertSee($this->ticketB->ticket_number)->assertSee($this->supportTwo->name);
     }
 
     public function test_support_can_open_authorized_details_and_cannot_use_idor(): void
     {
         $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketA->id)->assertOk()
             ->assertSee($this->ticketA->title)->assertSee('Assignment history');
-        $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketB->id)->assertForbidden();
+        $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketB->id)->assertOk()->assertSee($this->ticketB->title);
+        $this->actingAs($this->supportOne)->getJson('/tickets/'.$this->ticketB->id)->assertOk()
+            ->assertJsonPath('data.ticket_number', $this->ticketB->ticket_number)
+            ->assertJsonFragment(['body' => $this->internalB->body]);
+        $this->actingAs($this->employeeA)->get('/tickets/'.$this->ticketB->id)->assertForbidden();
     }
 
     public function test_status_changes_use_existing_workflow_and_reject_invalid_or_unauthorized_transitions(): void
@@ -71,6 +79,7 @@ class SupportDashboardTest extends TestCase
         $this->actingAs($this->supportOne)->patchJson('/tickets/'.$this->ticketA->id.'/status', ['status' => TicketStatusSlug::Closed->value])->assertUnprocessable();
         $this->assertSame(TicketStatusSlug::Assigned->value, $this->ticketA->fresh()->status->slug);
         $this->actingAs($this->supportOne)->patchJson('/tickets/'.$this->ticketB->id.'/status', ['status' => TicketStatusSlug::InProgress->value])->assertForbidden();
+        $this->actingAs($this->supportOne)->postJson('/tickets/'.$this->ticketB->id.'/assignments', ['assigned_to' => $this->supportOne->id])->assertForbidden();
     }
 
     public function test_support_can_claim_reassign_and_unassign_only_authorized_tickets_with_history(): void

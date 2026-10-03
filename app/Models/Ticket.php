@@ -179,7 +179,7 @@ class Ticket extends Model
      * (a test asserts both agree).
      *
      *  - employee: tickets they requested
-     *  - support:  tickets currently assigned to them + the unassigned queue
+     *  - support:  all tickets (view access is shared across the support team)
      *  - admin:    everything
      *  - inactive users: nothing
      *
@@ -195,9 +195,7 @@ class Ticket extends Model
 
         match (true) {
             $user->isAdmin() => null,
-            $user->isSupport() => $query->where(function (Builder $q) use ($user) {
-                $q->assignedTo($user)->orWhere(fn (Builder $inner) => $inner->unassigned());
-            }),
+            $user->isSupport() => null,
             default => $query->createdBy($user),
         };
     }

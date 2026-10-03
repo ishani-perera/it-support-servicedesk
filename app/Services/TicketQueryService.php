@@ -106,6 +106,9 @@ class TicketQueryService
         if (isset($filters['assignment'])) {
             $filters['assignment'] === 'unassigned' ? $query->unassigned() : $query->assignedTo($user);
         }
+        if (isset($filters['assigned_to'])) {
+            $query->assignedTo((int) $filters['assigned_to']);
+        }
         if (isset($filters['status'])) {
             $query->whereHas('status', fn (Builder $status) => $status->where('slug', $filters['status']));
         }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Enums\TicketStatusSlug;
 use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
@@ -111,14 +112,16 @@ class IdorTest extends TestCase
         $this->actingAs($this->employeeA)->get($this->url($this->ticketB))->assertForbidden();
     }
 
-    public function test_support_sees_assigned_and_queue_tickets_but_not_a_colleagues(): void
+    public function test_support_can_view_colleague_assigned_tickets_without_gaining_employee_access(): void
     {
         $this->actingAs($this->supportOne);
 
         $this->getJson($this->url($this->ticketA))->assertOk();          // assigned to me
         $this->getJson($this->url($this->ticketQueueB))->assertOk();     // unassigned queue
         $this->getJson($this->url($this->ticketA2))->assertOk();         // unassigned queue
-        $this->getJson($this->url($this->ticketB))->assertForbidden();   // held by supportTwo
+        $this->getJson($this->url($this->ticketB))->assertOk();          // held by supportTwo
+
+        $this->actingAs($this->employeeA)->getJson($this->url($this->ticketB))->assertForbidden();
     }
 
     public function test_admin_can_view_every_ticket(): void
@@ -130,15 +133,20 @@ class IdorTest extends TestCase
         }
     }
 
-    public function test_a_ticket_loses_visibility_the_moment_it_is_reassigned(): void
+    public function test_reassignment_changes_who_can_modify_status_but_not_team_view_access(): void
     {
         $this->actingAs($this->supportOne)->getJson($this->url($this->ticketA))->assertOk();
+        $this->patchJson('/tickets/'.$this->ticketA->id.'/status', ['status' => TicketStatusSlug::Assigned->value])->assertOk();
+        $this->app['auth']->forgetGuards();
 
         app(TicketAssignmentService::class)->assign($this->ticketA, $this->supportTwo, $this->admin);
         $this->app['auth']->forgetGuards();
 
-        $this->actingAs($this->supportOne)->getJson($this->url($this->ticketA))->assertForbidden();
+        $this->actingAs($this->supportOne)->getJson($this->url($this->ticketA))->assertOk();
+        $this->patchJson('/tickets/'.$this->ticketA->id.'/status', ['status' => TicketStatusSlug::InProgress->value])->assertForbidden();
+        $this->app['auth']->forgetGuards();
         $this->actingAs($this->supportTwo)->getJson($this->url($this->ticketA))->assertOk();
+        $this->patchJson('/tickets/'.$this->ticketA->id.'/status', ['status' => TicketStatusSlug::InProgress->value])->assertOk();
     }
 
     /* ===================== comments ===================== */
@@ -193,7 +201,7 @@ class IdorTest extends TestCase
     {
         $this->actingAs($this->supportOne);
         $this->getJson($this->commentUrl($this->ticketA, $this->internalA))->assertOk();
-        $this->getJson($this->commentUrl($this->ticketB, $this->internalB))->assertForbidden();
+        $this->getJson($this->commentUrl($this->ticketB, $this->internalB))->assertOk()->assertJsonPath('data.body', $this->internalB->body);
 
         $this->actingAs($this->admin);
         $this->getJson($this->commentUrl($this->ticketB, $this->internalB))->assertOk();
@@ -254,8 +262,11 @@ class IdorTest extends TestCase
         $this->putFile($this->attB);
 
         $this->actingAs($this->supportOne)->get($this->attachmentUrl($this->ticketA, $this->attA))->assertOk();
-        $this->actingAs($this->supportOne)->get($this->attachmentUrl($this->ticketB, $this->attB))->assertForbidden();
-        $this->actingAs($this->supportTwo)->get($this->attachmentUrl($this->ticketA, $this->attA))->assertForbidden();
+        $colleagueFile = $this->actingAs($this->supportOne)->get($this->attachmentUrl($this->ticketB, $this->attB));
+        $colleagueFile->assertOk()->assertDownload('report.pdf');
+        $this->assertSame('file-bytes', $colleagueFile->streamedContent());
+        $this->assertStringNotContainsString($this->attB->file_path, $colleagueFile->getContent());
+        $this->actingAs($this->supportTwo)->get($this->attachmentUrl($this->ticketA, $this->attA))->assertOk();
         $this->actingAs($this->admin)->get($this->attachmentUrl($this->ticketB, $this->attB))->assertOk();
     }
 

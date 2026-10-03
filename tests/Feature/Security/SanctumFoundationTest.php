@@ -158,7 +158,7 @@ class SanctumFoundationTest extends TestCase
         $this->asApiUser($this->employeeA)->getJson('/api/_t/tickets/'.$this->ticketB->id)->assertForbidden();
 
         $this->asApiUser($this->supportOne)->getJson('/api/_t/tickets/'.$this->ticketA->id)->assertOk();
-        $this->asApiUser($this->supportOne)->getJson('/api/_t/tickets/'.$this->ticketB->id)->assertForbidden();
+        $this->asApiUser($this->supportOne)->getJson('/api/_t/tickets/'.$this->ticketB->id)->assertOk();
 
         $this->asApiUser($this->admin)->getJson('/api/_t/tickets/'.$this->ticketB->id)->assertOk();
     }

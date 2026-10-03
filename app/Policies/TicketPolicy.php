@@ -12,9 +12,10 @@ use App\Models\User;
  *  - Employee: only tickets they REQUESTED (tickets.user_id). Can view them,
  *    comment on them and attach files. Cannot edit, re-status, re-prioritise,
  *    assign, or see internal notes.
- *  - Support:  tickets CURRENTLY assigned to them, plus the UNASSIGNED queue
- *    (so they can claim work). Tickets held by another agent are not visible.
- *    They may change status/priority only on tickets assigned to them.
+ *  - Support:  may view all tickets for shared team visibility, including
+ *    internal notes and attachments. They may change status/priority and
+ *    core fields only on tickets assigned to them. Assignment controls remain
+ *    limited to their own tickets and the unassigned queue.
  *  - Admin:    everything.
  *
  * Design notes
@@ -44,7 +45,7 @@ class TicketPolicy
     {
         return match (true) {
             $user->isAdmin() => true,
-            $user->isSupport() => $this->inSupportScope($user, $ticket),
+            $user->isSupport() => true,
             $user->isEmployee() => $this->isRequester($user, $ticket),
             default => false,
         };
@@ -89,13 +90,18 @@ class TicketPolicy
     /** Add a public (requester-visible) comment. */
     public function comment(User $user, Ticket $ticket): bool
     {
-        return $this->view($user, $ticket);
+        return match (true) {
+            $user->isAdmin() => true,
+            $user->isSupport() => $this->inSupportScope($user, $ticket),
+            $user->isEmployee() => $this->isRequester($user, $ticket),
+            default => false,
+        };
     }
 
     /** Add an internal note (never visible to the requester). Staff only. */
     public function addInternalNote(User $user, Ticket $ticket): bool
     {
-        return $user->isStaff() && $this->view($user, $ticket);
+        return $user->isStaff() && $this->comment($user, $ticket);
     }
 
     /** Whether internal notes (and attachments on them) may be seen. Staff only. */
@@ -106,7 +112,7 @@ class TicketPolicy
 
     public function uploadAttachment(User $user, Ticket $ticket): bool
     {
-        return $this->view($user, $ticket);
+        return $this->comment($user, $ticket);
     }
 
     /* ---------------------------------------------------------------------

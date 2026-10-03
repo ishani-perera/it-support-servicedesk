@@ -81,9 +81,9 @@ class RelatedPoliciesTest extends TestCase
             ['employeeB', 'publicA', false],
             ['supportOne', 'publicA', true],
             ['supportOne', 'internalA', true],   // assigned: sees internal notes
-            ['supportOne', 'publicB', false],    // colleague's ticket
-            ['supportOne', 'internalB', false],
-            ['supportTwo', 'internalA', false],
+            ['supportOne', 'publicB', true],     // support agents share ticket read access
+            ['supportOne', 'internalB', true],
+            ['supportTwo', 'internalA', true],
             ['admin', 'publicA', true],
             ['admin', 'internalA', true],
             ['admin', 'internalB', true],
@@ -144,8 +144,8 @@ class RelatedPoliciesTest extends TestCase
             ['employeeB', 'attA', false],
             ['supportOne', 'attA', true],
             ['supportOne', 'attInternalA', true],
-            ['supportOne', 'attB', false],
-            ['supportTwo', 'attA', false],
+            ['supportOne', 'attB', true],
+            ['supportTwo', 'attA', true],
             ['supportTwo', 'attB', true],
             ['admin', 'attA', true],
             ['admin', 'attInternalA', true],
@@ -165,7 +165,7 @@ class RelatedPoliciesTest extends TestCase
         $this->assertTrue($upload($this->employeeA, $this->ticketA));
         $this->assertFalse($upload($this->employeeA, $this->ticketB));
         $this->assertTrue($upload($this->supportOne, $this->ticketA));
-        $this->assertFalse($upload($this->supportOne, $this->ticketB));
+        $this->assertFalse($upload($this->supportOne, $this->ticketB), 'view access does not grant upload permission');
         $this->assertTrue($upload($this->admin, $this->ticketB));
     }
 
@@ -187,7 +187,7 @@ class RelatedPoliciesTest extends TestCase
         $this->assertFalse($this->can($this->employeeA, 'view', $row), 'requesters do not see assignment history');
         $this->assertFalse($this->can($this->employeeB, 'view', $row));
         $this->assertTrue($this->can($this->supportOne, 'view', $row));
-        $this->assertFalse($this->can($this->supportTwo, 'view', $row), 'colleague cannot read another agent\'s assignment');
+        $this->assertTrue($this->can($this->supportTwo, 'view', $row), 'support can read history for visible tickets');
         $this->assertTrue($this->can($this->supportTwo, 'view', $rowB));
         $this->assertTrue($this->can($this->admin, 'view', $row));
 

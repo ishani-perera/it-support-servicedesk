@@ -56,8 +56,8 @@ class TicketPolicyTest extends TestCase
 
             'supportOne on ticket assigned to them' => ['supportOne', 'ticketA', [1, 1, 1, 1, 1, 1, 1, 1, 1]],
             'supportOne on unassigned queue ticket' => ['supportOne', 'ticketQueueB', [1, 0, 0, 0, 1, 1, 1, 1, 1]],
-            "supportOne on a colleague's ticket" => ['supportOne', 'ticketB', [0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            "supportTwo on supportOne's ticket" => ['supportTwo', 'ticketA', [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            "supportOne on a colleague's ticket" => ['supportOne', 'ticketB', [1, 0, 0, 0, 0, 0, 0, 1, 0]],
+            "supportTwo on supportOne's ticket" => ['supportTwo', 'ticketA', [1, 0, 0, 0, 0, 0, 0, 1, 0]],
             'supportTwo on their ticket' => ['supportTwo', 'ticketB', [1, 1, 1, 1, 1, 1, 1, 1, 1]],
 
             'admin on assigned ticket' => ['admin', 'ticketA', [1, 1, 1, 1, 1, 1, 1, 1, 1]],
@@ -123,18 +123,19 @@ class TicketPolicyTest extends TestCase
         $service = app(TicketAssignmentService::class);
 
         $this->assertTrue($this->allows($this->supportOne, 'view', $this->ticketA));
-        $this->assertFalse($this->allows($this->supportTwo, 'view', $this->ticketA));
+        $this->assertTrue($this->allows($this->supportTwo, 'view', $this->ticketA));
+        $this->assertFalse($this->allows($this->supportTwo, 'updateStatus', $this->ticketA));
 
         $service->assign($this->ticketA, $this->supportTwo, $this->admin, 'handover');
 
-        $this->assertFalse($this->allows($this->supportOne, 'view', $this->ticketA), 'previous agent loses access');
-        $this->assertFalse($this->allows($this->supportOne, 'updateStatus', $this->ticketA));
+        $this->assertTrue($this->allows($this->supportOne, 'view', $this->ticketA), 'team view remains available');
+        $this->assertFalse($this->allows($this->supportOne, 'updateStatus', $this->ticketA), 'previous agent loses modification rights');
         $this->assertTrue($this->allows($this->supportTwo, 'view', $this->ticketA));
         $this->assertTrue($this->allows($this->supportTwo, 'updateStatus', $this->ticketA));
 
         $service->unassign($this->ticketA);
 
-        $this->assertTrue($this->allows($this->supportOne, 'view', $this->ticketA), 'back in the shared queue');
+        $this->assertTrue($this->allows($this->supportOne, 'view', $this->ticketA));
         $this->assertFalse($this->allows($this->supportOne, 'updateStatus', $this->ticketA), 'but not workable until claimed');
         $this->assertTrue($this->allows($this->supportOne, 'assign', $this->ticketA), 'a support agent may claim a queue ticket');
     }
@@ -145,7 +146,7 @@ class TicketPolicyTest extends TestCase
         $own = $this->makeTicket($this->supportOne);
         $this->makeAssignment($own, $this->supportTwo, $this->admin);
 
-        $this->assertFalse($this->allows($this->supportOne, 'view', $own));
+        $this->assertTrue($this->allows($this->supportOne, 'view', $own));
         $this->assertTrue($this->allows($this->supportTwo, 'view', $own));
     }
 
@@ -178,8 +179,8 @@ class TicketPolicyTest extends TestCase
 
         $this->assertSame([$this->ticketA->id, $this->ticketA2->id], $ids($this->employeeA));
         $this->assertSame([$this->ticketB->id, $this->ticketQueueB->id], $ids($this->employeeB));
-        $this->assertSame([$this->ticketA->id, $this->ticketA2->id, $this->ticketQueueB->id], $ids($this->supportOne));
-        $this->assertSame([$this->ticketA2->id, $this->ticketB->id, $this->ticketQueueB->id], $ids($this->supportTwo));
+        $this->assertSame([$this->ticketA->id, $this->ticketA2->id, $this->ticketB->id, $this->ticketQueueB->id], $ids($this->supportOne));
+        $this->assertSame([$this->ticketA->id, $this->ticketA2->id, $this->ticketB->id, $this->ticketQueueB->id], $ids($this->supportTwo));
         $this->assertCount(4, $ids($this->admin));
         $this->assertSame([], $ids(User::factory()->admin()->inactive()->create()));
     }
