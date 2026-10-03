@@ -17,6 +17,7 @@ use App\Services\TicketAssignmentManager;
 use App\Services\TicketAttachmentService;
 use App\Services\TicketQueryService;
 use App\Services\TicketService;
+use App\Services\TicketSlaService;
 use App\Services\TicketWorkflowService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -160,7 +161,7 @@ class TicketController extends Controller
         return response()->json(['data' => ['id' => $ticket->id, 'current_assignment' => null]]);
     }
 
-    public function show(Request $request, Ticket $ticket): JsonResponse|View
+    public function show(Request $request, Ticket $ticket, TicketSlaService $slaService): JsonResponse|View
     {
         $this->authorize('view', $ticket);
 
@@ -168,19 +169,21 @@ class TicketController extends Controller
 
         if ($request->user()->isEmployee() && ! $request->expectsJson()) {
             [$comments, $attachments] = $this->conversation($ticket, $request->user());
+            $sla = $slaService->evaluate($ticket);
 
-            return view('employee.tickets.show', compact('ticket', 'comments', 'attachments'));
+            return view('employee.tickets.show', compact('ticket', 'comments', 'attachments', 'sla'));
         }
 
         if ($request->user()->isSupport() && ! $request->expectsJson()) {
             [$comments, $attachments] = $this->conversation($ticket, $request->user());
+            $sla = $slaService->evaluate($ticket);
             $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
             $assignments->each(fn ($item) => $item->setRelation('ticket', $ticket));
             $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
             $statuses = TicketStatus::query()->active()->ordered()->get();
             $assignees = User::active()->staff()->orderBy('name')->get();
 
-            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'statuses', 'assignees'));
+            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'statuses', 'assignees', 'sla'));
         }
 
         $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();

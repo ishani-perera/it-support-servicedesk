@@ -28,6 +28,11 @@ class UserPolicy
         return $user->isAdmin();
     }
 
+    public function create(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function view(User $user, User $target): bool
     {
         return $user->isAdmin() || $user->is($target);

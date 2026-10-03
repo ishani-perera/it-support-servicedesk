@@ -18,10 +18,9 @@ use Tests\Concerns\SeedsMasterData;
 use Tests\TestCase;
 
 /**
- * The REST API itself is a later phase. These tests prove the AUTHENTICATION
- * architecture it will sit on: auth:sanctum guards routes, answers JSON, and
- * does not bypass Policies. They use throw-away routes registered in setUp
- * (nothing is added to routes/api.php).
+ * These tests verify the Sanctum foundation remains intact as the REST API
+ * adds application routes. Throw-away routes continue to prove that tokens
+ * never bypass Policies.
  */
 class SanctumFoundationTest extends TestCase
 {
@@ -84,7 +83,7 @@ class SanctumFoundationTest extends TestCase
 
         $response->assertUnauthorized();
         $response->assertHeader('Content-Type', 'application/json');
-        $response->assertExactJson(['message' => 'Unauthenticated.']);
+        $response->assertExactJson(['error' => ['code' => 'unauthenticated', 'message' => 'Unauthenticated.']]);
         $this->assertNull($response->headers->get('Location'));
     }
 
@@ -173,10 +172,12 @@ class SanctumFoundationTest extends TestCase
         $this->getJson('/api/_t/admin-only')->assertUnauthorized();
     }
 
-    public function test_routes_api_defines_no_endpoints_yet(): void
+    public function test_routes_api_exposes_the_phase_ten_endpoints(): void
     {
-        $apiRoutes = collect(Route::getRoutes())->filter(fn ($r) => str_starts_with($r->uri(), 'api/') && ! str_starts_with($r->uri(), 'api/_t'));
-
-        $this->assertCount(0, $apiRoutes, 'the REST API belongs to a later phase');
+        $apiUris = collect(Route::getRoutes())->pluck('uri')->filter(fn ($uri) => str_starts_with($uri, 'api/'));
+        $this->assertContains('api/auth/login', $apiUris);
+        $this->assertContains('api/auth/user', $apiUris);
+        $this->assertContains('api/tickets', $apiUris);
+        $this->assertContains('api/notifications', $apiUris);
     }
 }

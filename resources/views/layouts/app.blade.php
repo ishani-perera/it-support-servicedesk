@@ -11,11 +11,17 @@
     <div class="min-h-screen lg:flex">
         <button id="sidebar-backdrop" type="button" class="fixed inset-0 z-30 hidden bg-slate-950/40 lg:hidden" aria-label="Close navigation"></button>
         <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0">
-            <a href="{{ auth()->user()->isSupport() ? route('support.dashboard') : route('employee.dashboard') }}" class="flex h-20 items-center gap-3 border-b border-slate-100 px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+            <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isSupport() ? route('support.dashboard') : route('employee.dashboard')) }}" class="flex h-20 items-center gap-3 border-b border-slate-100 px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
                 <span class="grid size-10 place-items-center rounded-xl bg-indigo-600 text-lg font-bold text-white">S</span>
                 <span><span class="block text-sm font-bold tracking-tight text-slate-900">ServiceDesk</span><span class="block text-xs text-slate-500">IT support portal</span></span>
             </a>
-            @if (auth()->user()->isSupport())
+            @if (auth()->user()->isAdmin())
+                <nav aria-label="Admin navigation" class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
+                    @foreach ([['admin.dashboard', 'Dashboard'], ['admin.users.*', 'Users'], ['admin.departments.*', 'Departments'], ['admin.categories.*', 'Categories'], ['admin.priorities.*', 'Priorities'], ['admin.statuses.*', 'Workflow statuses'], ['admin.reports.*', 'Reports']] as [$pattern, $label])
+                        <a href="{{ $pattern === 'admin.dashboard' ? route('admin.dashboard') : route(str_replace('.*', '.index', $pattern)) }}" @class(['flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600', 'bg-indigo-50 text-indigo-700' => request()->routeIs($pattern), 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' => ! request()->routeIs($pattern)])>{{ $label }}</a>
+                    @endforeach
+                </nav>
+            @elseif (auth()->user()->isSupport())
                 <nav aria-label="Main navigation" class="flex-1 space-y-1 px-4 py-6">
                     <a href="{{ route('support.dashboard') }}" @class(['flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600', 'bg-indigo-50 text-indigo-700' => request()->routeIs('support.dashboard'), 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' => ! request()->routeIs('support.dashboard')])><span aria-hidden="true">▦</span> Support dashboard</a>
                     <a href="{{ route('tickets.index') }}" @class(['flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600', 'bg-indigo-50 text-indigo-700' => request()->routeIs('tickets.index'), 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' => ! request()->routeIs('tickets.index')])><span aria-hidden="true">▤</span> Ticket board</a>
@@ -45,9 +51,10 @@
             <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
                 <div class="flex items-center gap-3">
                     <button id="sidebar-toggle" type="button" class="grid size-10 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 lg:hidden" aria-controls="app-sidebar" aria-expanded="false" aria-label="Open navigation"><span aria-hidden="true">☰</span></button>
-                    <div><p class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ auth()->user()->isSupport() ? 'IT Support workspace' : 'Employee portal' }}</p><p class="text-sm font-semibold text-slate-800">@yield('topline', 'Support center')</p></div>
+                    <div><p class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ auth()->user()->isAdmin() ? 'ServiceDesk administration' : (auth()->user()->isSupport() ? 'IT Support workspace' : 'Employee portal') }}</p><p class="text-sm font-semibold text-slate-800">@yield('topline', 'Support center')</p></div>
                 </div>
-                @unless (auth()->user()->isSupport())<a href="{{ route('tickets.create') }}" class="hidden rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:inline-flex">New ticket <span class="ml-2" aria-hidden="true">＋</span></a>@endunless
+                @if (auth()->user()->isEmployee())<a href="{{ route('tickets.create') }}" class="hidden rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:inline-flex">New ticket <span class="ml-2" aria-hidden="true">＋</span></a>@endif
+                <x-notification-center :recent-notifications="$recentNotifications" :unread-count="$unreadNotificationCount" />
             </header>
             <main class="mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-9">
                 @if (session('status'))
@@ -63,7 +70,7 @@
                 @endif
                 @yield('content')
             </main>
-            <footer class="px-4 pb-8 text-center text-xs text-slate-400 sm:px-8">{{ auth()->user()->isSupport() ? 'ServiceDesk · IT Operations' : 'Need help? Your IT team is here for you.' }}</footer>
+            <footer class="px-4 pb-8 text-center text-xs text-slate-400 sm:px-8">{{ auth()->user()->isAdmin() || auth()->user()->isSupport() ? 'ServiceDesk · IT Operations' : 'Need help? Your IT team is here for you.' }}</footer>
         </div>
     </div>
 </body>

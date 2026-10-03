@@ -1,11 +1,17 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DepartmentController as AdminDepartmentController;
+use App\Http\Controllers\Admin\PriorityController as AdminPriorityController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\EmployeeDashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SupportDashboardController;
 use App\Http\Controllers\TicketAttachmentController;
@@ -61,7 +67,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         return match (true) {
             $request->user()->isEmployee() => app(EmployeeDashboardController::class)($request),
             $request->user()->isSupport() => app(SupportDashboardController::class)($request, app(TicketQueryService::class)),
-            default => view('home'),
+            default => redirect()->route('admin.dashboard'),
         };
     })->name('home');
 
@@ -76,6 +82,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::get('notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
     // Record-level authorization boundary (Policies). {ticket} etc. are bound
     // by id, then authorized — never trusted.
@@ -99,6 +110,32 @@ Route::middleware(['auth', 'active'])->group(function () {
 
 /* ----- Admin only ----- */
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('users/create', [AdminUserController::class, 'create'])->name('users.create');
+    Route::post('users', [AdminUserController::class, 'store'])->name('users.store');
+    Route::get('users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+    Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
     Route::patch('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::patch('users/{user}/status', [AdminUserController::class, 'status'])->name('users.status');
+
+    Route::get('departments', [AdminDepartmentController::class, 'index'])->name('departments.index');
+    Route::get('departments/create', [AdminDepartmentController::class, 'create'])->name('departments.create');
+    Route::post('departments', [AdminDepartmentController::class, 'store'])->name('departments.store');
+    Route::get('departments/{department}/edit', [AdminDepartmentController::class, 'edit'])->name('departments.edit');
+    Route::patch('departments/{department}', [AdminDepartmentController::class, 'update'])->name('departments.update');
+
+    Route::get('categories', [AdminCategoryController::class, 'index'])->name('categories.index');
+    Route::get('categories/create', [AdminCategoryController::class, 'create'])->name('categories.create');
+    Route::post('categories', [AdminCategoryController::class, 'store'])->name('categories.store');
+    Route::get('categories/{category}/edit', [AdminCategoryController::class, 'edit'])->name('categories.edit');
+    Route::patch('categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
+
+    Route::get('priorities', [AdminPriorityController::class, 'index'])->name('priorities.index');
+    Route::get('priorities/{priority}/edit', [AdminPriorityController::class, 'edit'])->name('priorities.edit');
+    Route::patch('priorities/{priority}', [AdminPriorityController::class, 'update'])->name('priorities.update');
+
+    Route::get('statuses', [AdminPriorityController::class, 'statuses'])->name('statuses.index');
+    Route::get('reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [AdminReportController::class, 'export'])->name('reports.export');
 });

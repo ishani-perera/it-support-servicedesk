@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class TicketService
 {
-    public function __construct(private readonly TicketNumberService $numbers) {}
+    public function __construct(
+        private readonly TicketNumberService $numbers,
+        private readonly TicketNotificationService $notifications,
+    ) {}
 
     public function create(User $requester, array $attributes): Ticket
     {
@@ -25,6 +28,7 @@ class TicketService
             $ticket->title = $attributes['title'];
             $ticket->description = $attributes['description'];
             $ticket->save();
+            $this->notifications->ticketCreated($ticket, $requester);
 
             return $ticket;
         });

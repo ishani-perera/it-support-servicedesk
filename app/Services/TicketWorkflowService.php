@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class TicketWorkflowService
 {
+    public function __construct(private readonly TicketNotificationService $notifications) {}
+
     private const TRANSITIONS = [
         'open' => ['assigned'],
         'assigned' => ['open', 'in_progress'],
@@ -39,6 +41,7 @@ class TicketWorkflowService
             }
             $ticket->closed_at = $target === TicketStatusSlug::Closed ? now() : null;
             $ticket->save();
+            $this->notifications->statusChanged($ticket, $actor, $target);
 
             return $ticket;
         });

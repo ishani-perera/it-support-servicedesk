@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTicketCommentRequest;
 use App\Models\Ticket;
 use App\Models\TicketComment;
+use App\Services\TicketNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Phase 03 authorization boundary (see TicketController). The route uses
@@ -15,13 +17,21 @@ use Illuminate\Http\RedirectResponse;
  */
 class TicketCommentController extends Controller
 {
-    public function store(StoreTicketCommentRequest $request, Ticket $ticket): JsonResponse|RedirectResponse
+    public function store(StoreTicketCommentRequest $request, Ticket $ticket, TicketNotificationService $notifications): JsonResponse|RedirectResponse
     {
-        $comment = $ticket->comments()->create([
-            'user_id' => $request->user()->getKey(),
-            'body' => $request->validated('body'),
-            'is_internal' => $request->user()->isStaff() && $request->boolean('is_internal'),
-        ]);
+        $comment = DB::transaction(function () use ($request, $ticket, $notifications) {
+            $comment = $ticket->comments()->create([
+                'user_id' => $request->user()->getKey(),
+                'body' => $request->validated('body'),
+                'is_internal' => $request->user()->isStaff() && $request->boolean('is_internal'),
+            ]);
+
+            if (! $comment->is_internal) {
+                $notifications->publicCommentAdded($ticket, $request->user());
+            }
+
+            return $comment;
+        });
 
         if ($request->input('_html_form') === '1') {
             return redirect()->route('tickets.show', $ticket)->with('status', 'Your comment has been added.');

@@ -21,6 +21,7 @@ class RouteProtectionTest extends TestCase
         'GET /',
         'GET up',
         'GET sanctum/csrf-cookie',          // Sanctum SPA CSRF endpoint (package route)
+        'POST api/auth/login',
         'GET login', 'POST login',
         'GET forgot-password', 'POST forgot-password',
         'GET reset-password/{token}', 'POST reset-password',
@@ -73,7 +74,8 @@ class RouteProtectionTest extends TestCase
         foreach ($this->routes() as [$key, $route]) {
             if (preg_match('/\{(ticket|comment|attachment|assignment|user)\}/', $route->uri())) {
                 $this->assertNotContains($key, self::PUBLIC);
-                $this->assertContains('auth', $route->gatherMiddleware(), "{$key} must require auth");
+                $middleware = $route->gatherMiddleware();
+                $this->assertTrue(in_array('auth', $middleware, true) || in_array('auth:sanctum', $middleware, true), "{$key} must require auth");
             }
         }
     }
@@ -106,7 +108,7 @@ class RouteProtectionTest extends TestCase
     public function test_sensitive_post_routes_are_throttled(): void
     {
         foreach ($this->routes() as [$key, $route]) {
-            if (in_array($key, ['POST forgot-password', 'POST reset-password'], true)) {
+            if (in_array($key, ['POST forgot-password', 'POST reset-password', 'POST api/auth/login'], true)) {
                 $this->assertTrue(
                     collect($route->gatherMiddleware())->contains(fn ($m) => is_string($m) && str_starts_with($m, 'throttle:')),
                     "{$key} must be rate limited",
@@ -120,7 +122,7 @@ class RouteProtectionTest extends TestCase
     {
         $keys = array_column($this->routes(), 0);
 
-        foreach (['POST login', 'POST logout', 'POST forgot-password', 'POST reset-password', 'GET tickets/{ticket}'] as $needed) {
+        foreach (['POST login', 'POST logout', 'POST forgot-password', 'POST reset-password', 'GET tickets/{ticket}', 'POST api/auth/login', 'GET api/tickets'] as $needed) {
             $this->assertContains($needed, $keys);
         }
 
@@ -142,7 +144,7 @@ class RouteProtectionTest extends TestCase
     public function test_ticket_routes_have_scoped_bindings_for_nested_resources(): void
     {
         foreach ($this->routes() as [$key, $route]) {
-            if (preg_match('#^GET tickets/\{ticket\}/(comments|attachments)/#', $key)) {
+            if (preg_match('#^GET (api/)?tickets/\{ticket\}/(comments/\{comment\}|attachments/\{attachment\})$#', $key)) {
                 $this->assertTrue($route->enforcesScopedBindings(), "{$key} must use scoped bindings");
             }
         }

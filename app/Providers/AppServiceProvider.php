@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Services\NotificationAccessService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View as ViewContract;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,5 +36,19 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => $this->app->isProduction()
             ? Password::min(12)->mixedCase()->numbers()->uncompromised()
             : Password::min(12)->mixedCase()->numbers());
+
+        View::composer('layouts.app', function (ViewContract $view): void {
+            $user = Auth::user();
+            if ($user === null) {
+                return;
+            }
+
+            $access = app(NotificationAccessService::class);
+            $visible = $access->visibleTo($user);
+            $view->with([
+                'recentNotifications' => $visible->latest()->limit(5)->get(),
+                'unreadNotificationCount' => $access->visibleTo($user)->whereNull('read_at')->count(),
+            ]);
+        });
     }
 }

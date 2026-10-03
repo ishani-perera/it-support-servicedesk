@@ -18,6 +18,7 @@
         </div>
 
         <aside class="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-24">
+            <x-ticket-sla :ticket="$ticket" :sla="$sla" />
             <h2 class="text-sm font-bold text-slate-950">Ticket information</h2>
             <dl class="mt-4 space-y-4">
                 <div><dt class="text-xs font-medium text-slate-500">Status</dt><dd class="mt-1.5"><x-ticket-status-badge :status="$ticket->status" /></dd></div>

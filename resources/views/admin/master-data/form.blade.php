@@ -1,0 +1,13 @@
+@extends('layouts.app')
+@section('title', ($creating ? 'Create ' : 'Edit ').$title)
+@section('topline', 'Configuration')
+@section('content')
+    <a href="{{ $kind === 'department' ? route('admin.departments.index') : route('admin.categories.index') }}" class="text-sm font-semibold text-slate-500 hover:text-indigo-700">← Back to {{ $kind === 'department' ? 'departments' : 'categories' }}</a>
+    <div class="mx-auto mt-5 max-w-2xl"><h1 class="mb-5 text-2xl font-bold text-slate-950">{{ $creating ? 'Create' : 'Edit' }} {{ strtolower($title) }}</h1><form method="POST" action="{{ $creating ? route($storeRoute) : route($storeRoute, $item) }}" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">@csrf @unless($creating) @method('PATCH') @endunless
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-700">Name</span><input name="name" required maxlength="100" value="{{ old('name', $item->name) }}" class="w-full rounded-lg border-slate-300 text-sm @error('name') border-rose-500 @enderror">@error('name')<span class="mt-1 block text-xs text-rose-700">{{ $message }}</span>@enderror</label>
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-700">Description</span><textarea name="description" rows="4" maxlength="2000" class="w-full rounded-lg border-slate-300 text-sm @error('description') border-rose-500 @enderror">{{ old('description', $item->description) }}</textarea>@error('description')<span class="mt-1 block text-xs text-rose-700">{{ $message }}</span>@enderror</label>
+        @unless($creating)<label class="flex items-center gap-3 rounded-lg bg-slate-50 p-3"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $item->is_active)) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"><span><span class="block text-sm font-semibold text-slate-800">Active</span><span class="block text-xs text-slate-500">Keep this item available in new ticket forms.</span></span></label>@endunless
+        @error('is_active')<span class="block text-xs text-rose-700">{{ $message }}</span>@enderror
+        <div class="flex justify-end gap-2 border-t border-slate-100 pt-5"><a href="{{ $kind === 'department' ? route('admin.departments.index') : route('admin.categories.index') }}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</a><button class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">Save</button></div>
+    </form></div>
+@endsection

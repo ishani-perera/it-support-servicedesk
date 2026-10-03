@@ -10,7 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class TicketAssignmentManager
 {
-    public function __construct(private readonly TicketAssignmentService $assignments, private readonly TicketWorkflowService $workflow) {}
+    public function __construct(
+        private readonly TicketAssignmentService $assignments,
+        private readonly TicketWorkflowService $workflow,
+        private readonly TicketNotificationService $notifications,
+    ) {}
 
     public function assign(Ticket $ticket, User $assignee, User $actor, ?string $note = null): TicketAssignment
     {
@@ -19,9 +23,13 @@ class TicketAssignmentManager
         return DB::transaction(function () use ($ticket, $assignee, $actor, $note) {
             $ticket = Ticket::query()->lockForUpdate()->findOrFail($ticket->getKey());
             $actor->can('create', [TicketAssignment::class, $ticket]) || abort(403);
+            $previousAssignee = $ticket->currentAssignment()->with('assignee')->first()?->assignee;
             $assignment = $this->assignments->assign($ticket, $assignee, $actor, $note);
             if ($ticket->status()->value('slug') === TicketStatusSlug::Open->value) {
                 $this->workflow->transition($ticket, TicketStatusSlug::Assigned, $actor);
+            }
+            if ($assignment->wasRecentlyCreated) {
+                $this->notifications->assignmentChanged($ticket, $actor, $assignee, $previousAssignee);
             }
 
             return $assignment;
