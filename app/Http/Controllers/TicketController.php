@@ -44,7 +44,8 @@ class TicketController extends Controller
             'assigned_to' => ['sometimes', 'integer', 'exists:users,id'], 'requester_id' => ['sometimes', 'integer', 'exists:users,id'],
             'from' => ['sometimes', 'date'], 'to' => ['sometimes', 'date', 'after_or_equal:from'], 'ticket_number' => ['sometimes', 'string', 'max:20'],
             'search' => ['sometimes', 'string', 'max:150'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'sort' => ['sometimes', 'string', Rule::in(['newest', 'oldest', 'updated'])],
+            'assignment' => ['sometimes', 'string', Rule::in(['mine', 'unassigned'])],
+            'sort' => ['sometimes', 'string', Rule::in(['newest', 'oldest', 'updated', 'priority'])],
         ]);
 
         $page = $tickets->paginate($request->user(), $filters);
@@ -55,6 +56,18 @@ class TicketController extends Controller
                 'priorities' => TicketPriority::query()->active()->ordered()->get(),
                 'categories' => TicketCategory::query()->active()->orderBy('name')->get(),
                 'filters' => $filters,
+            ]);
+        }
+        if ($request->user()->isSupport() && ! $request->expectsJson()) {
+            return view('support.tickets.index', [
+                'tickets' => $page,
+                'statuses' => TicketStatus::query()->active()->ordered()->get(),
+                'priorities' => TicketPriority::query()->active()->ordered()->get(),
+                'categories' => TicketCategory::query()->active()->orderBy('name')->get(),
+                'filters' => $filters,
+                'board' => $tickets->supportBoard($request->user(), $filters),
+                'assignees' => User::active()->staff()->orderBy('name')->get(),
+                'mode' => $request->query('view') === 'table' ? 'table' : 'board',
             ]);
         }
 
@@ -112,24 +125,36 @@ class TicketController extends Controller
         return response()->json(['data' => ['id' => $ticket->id, 'ticket_number' => $ticket->ticket_number, 'title' => $ticket->title]]);
     }
 
-    public function status(UpdateTicketStatusRequest $request, Ticket $ticket, TicketWorkflowService $workflow): JsonResponse
+    public function status(UpdateTicketStatusRequest $request, Ticket $ticket, TicketWorkflowService $workflow): JsonResponse|RedirectResponse
     {
         $workflow->transition($ticket, TicketStatusSlug::from($request->validated('status')), $request->user());
+
+        if ($request->input('_html_form') === '1') {
+            return back()->with('status', 'Ticket status updated.');
+        }
 
         return response()->json(['data' => ['id' => $ticket->id, 'status' => $ticket->fresh()->status->name]]);
     }
 
-    public function assign(AssignTicketRequest $request, Ticket $ticket, TicketAssignmentManager $assignments): JsonResponse
+    public function assign(AssignTicketRequest $request, Ticket $ticket, TicketAssignmentManager $assignments): JsonResponse|RedirectResponse
     {
         $assignment = $assignments->assign($ticket, User::active()->findOrFail($request->validated('assigned_to')), $request->user(), $request->validated('note'));
+
+        if ($request->input('_html_form') === '1') {
+            return back()->with('status', 'Ticket assigned to '.$assignment->assignee->name.'.');
+        }
 
         return response()->json(['data' => ['id' => $assignment->id, 'assigned_to' => $assignment->assigned_to]], 201);
     }
 
-    public function unassign(Request $request, Ticket $ticket, TicketAssignmentManager $assignments): JsonResponse
+    public function unassign(Request $request, Ticket $ticket, TicketAssignmentManager $assignments): JsonResponse|RedirectResponse
     {
         $this->authorize('create', [TicketAssignment::class, $ticket]);
         $assignments->unassign($ticket, $request->user());
+
+        if ($request->input('_html_form') === '1') {
+            return back()->with('status', 'Ticket returned to the unassigned queue.');
+        }
 
         return response()->json(['data' => ['id' => $ticket->id, 'current_assignment' => null]]);
     }
@@ -139,15 +164,27 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load(['user', 'department', 'category', 'priority', 'status', 'currentAssignment.assignee']);
-        $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
 
         if ($request->user()->isEmployee() && ! $request->expectsJson()) {
+            $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
             $attachments = $ticket->attachments()->with(['comment', 'uploader'])->latest()->get();
             $attachments->each(fn ($attachment) => $attachment->setRelation('ticket', $ticket));
             $attachments = $attachments->filter(fn ($attachment) => $request->user()->can('view', $attachment))->values();
 
             return view('employee.tickets.show', compact('ticket', 'comments', 'attachments'));
         }
+
+        if ($request->user()->isSupport() && ! $request->expectsJson()) {
+            $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
+            $assignments->each(fn ($item) => $item->setRelation('ticket', $ticket));
+            $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
+            $statuses = TicketStatus::query()->active()->ordered()->get();
+            $assignees = User::active()->staff()->orderBy('name')->get();
+
+            return view('support.tickets.show', compact('ticket', 'assignments', 'statuses', 'assignees'));
+        }
+
+        $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
 
         $currentAssignment = $ticket->currentAssignment;
         if ($currentAssignment) {

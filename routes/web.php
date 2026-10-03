@@ -7,9 +7,11 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SupportDashboardController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketCommentController;
 use App\Http\Controllers\TicketController;
+use App\Services\TicketQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -56,10 +58,16 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Landing page after login (placeholder — the role dashboards come later).
     Route::get('home', function (Request $request) {
-        return $request->user()->isEmployee()
-            ? app(EmployeeDashboardController::class)($request)
-            : view('home');
+        return match (true) {
+            $request->user()->isEmployee() => app(EmployeeDashboardController::class)($request),
+            $request->user()->isSupport() => app(SupportDashboardController::class)($request, app(TicketQueryService::class)),
+            default => view('home'),
+        };
     })->name('home');
+
+    Route::middleware('role:support')->prefix('support')->name('support.')->group(function () {
+        Route::get('dashboard', SupportDashboardController::class)->name('dashboard');
+    });
 
     Route::middleware('role:employee')->group(function () {
         Route::get('dashboard', EmployeeDashboardController::class)->name('employee.dashboard');
