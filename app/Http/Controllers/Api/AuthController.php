@@ -36,6 +36,7 @@ class AuthController extends Controller
                 'user' => new UserResource($user->load('department')),
                 'access_token' => $token->plainTextToken,
                 'token_type' => 'Bearer',
+                'expires_at' => $token->accessToken->expires_at,
             ],
         ], 201);
     }

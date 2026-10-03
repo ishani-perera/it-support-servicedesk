@@ -122,11 +122,13 @@ class UserSecurityTest extends TestCase
     public function test_admin_can_manage_roles(): void
     {
         $this->actingAs($this->admin);
+        $this->employeeB->createToken('role-before-change');
 
         $this->patchJson('/admin/users/'.$this->employeeB->id, ['role' => 'support'])
             ->assertOk()
             ->assertJsonPath('data.role', 'support');
         $this->assertSame(UserRole::Support, $this->employeeB->fresh()->role);
+        $this->assertSame(0, $this->employeeB->tokens()->count());
 
         $this->patchJson('/admin/users/'.$this->employeeB->id, ['role' => 'employee'])->assertOk();
         $this->assertSame(UserRole::Employee, $this->employeeB->fresh()->role);
@@ -136,9 +138,11 @@ class UserSecurityTest extends TestCase
     {
         $this->actingAs($this->admin);
         $it = Department::where('name', 'IT')->firstOrFail();
+        $this->employeeB->createToken('active-before-change');
 
         $this->patchJson('/admin/users/'.$this->employeeB->id, ['is_active' => false])->assertOk();
         $this->assertFalse($this->employeeB->fresh()->is_active);
+        $this->assertSame(0, $this->employeeB->tokens()->count());
 
         $this->patchJson('/admin/users/'.$this->employeeB->id, ['is_active' => true, 'department_id' => $it->id])->assertOk();
         $fresh = $this->employeeB->fresh();

@@ -118,6 +118,27 @@ class RouteProtectionTest extends TestCase
         // POST /login is rate limited inside LoginRequest (5 attempts per email+IP) — see AuthenticationTest.
     }
 
+    public function test_api_routes_have_general_throttling_and_mutations_have_a_stricter_limit(): void
+    {
+        foreach ($this->routes() as [$key, $route]) {
+            if (! str_starts_with($route->uri(), 'api/')) {
+                continue;
+            }
+
+            $middleware = $route->gatherMiddleware();
+            if ($key === 'POST api/auth/login') {
+                $this->assertContains('throttle:10,1', $middleware);
+
+                continue;
+            }
+
+            $this->assertContains('throttle:api', $middleware, "{$key} needs the authenticated API request limit");
+            if (in_array(strtok($key, ' '), ['POST', 'PATCH', 'PUT', 'DELETE'], true)) {
+                $this->assertContains('throttle:api-write', $middleware, "{$key} needs the API mutation limit");
+            }
+        }
+    }
+
     public function test_the_expected_security_routes_exist_and_dangerous_ones_do_not(): void
     {
         $keys = array_column($this->routes(), 0);

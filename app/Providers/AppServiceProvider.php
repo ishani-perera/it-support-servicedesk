@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Services\NotificationAccessService;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -25,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)
+            ->by('api:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('api-write', fn (Request $request) => Limit::perMinute(20)
+            ->by('api-write:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // N+1 guard: lazily loading a relationship on a model that came from a
         // multi-row query throws outside production, so missing eager loads
         // (with()) are caught in development and CI instead of reaching users.

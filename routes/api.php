@@ -10,31 +10,31 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('api.auth.login');
 
-Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function (): void {
     Route::get('auth/user', [AuthController::class, 'user'])->name('api.auth.user');
-    Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+    Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('throttle:api-write')->name('api.auth.logout');
 
     Route::get('lookups', LookupController::class)->name('api.lookups');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('api.tickets.index');
-    Route::post('tickets', [TicketController::class, 'store'])->name('api.tickets.store');
+    Route::post('tickets', [TicketController::class, 'store'])->middleware('throttle:api-write')->name('api.tickets.store');
 
     Route::scopeBindings()->group(function (): void {
         Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('api.tickets.show');
-        Route::patch('tickets/{ticket}', [TicketController::class, 'update'])->name('api.tickets.update');
-        Route::patch('tickets/{ticket}/status', [TicketController::class, 'status'])->name('api.tickets.status');
-        Route::post('tickets/{ticket}/assignments', [TicketController::class, 'assign'])->name('api.tickets.assign');
-        Route::delete('tickets/{ticket}/assignments/current', [TicketController::class, 'unassign'])->name('api.tickets.unassign');
+        Route::patch('tickets/{ticket}', [TicketController::class, 'update'])->middleware('throttle:api-write')->name('api.tickets.update');
+        Route::patch('tickets/{ticket}/status', [TicketController::class, 'status'])->middleware('throttle:api-write')->name('api.tickets.status');
+        Route::post('tickets/{ticket}/assignments', [TicketController::class, 'assign'])->middleware('throttle:api-write')->name('api.tickets.assign');
+        Route::delete('tickets/{ticket}/assignments/current', [TicketController::class, 'unassign'])->middleware('throttle:api-write')->name('api.tickets.unassign');
         Route::get('tickets/{ticket}/comments', [TicketController::class, 'comments'])->name('api.tickets.comments.index');
-        Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])->name('api.tickets.comments.store');
+        Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])->middleware('throttle:api-write')->name('api.tickets.comments.store');
         Route::get('tickets/{ticket}/comments/{comment}', [TicketCommentController::class, 'show'])->name('api.tickets.comments.show');
         Route::get('tickets/{ticket}/attachments', [TicketController::class, 'attachments'])->name('api.tickets.attachments.index');
-        Route::post('tickets/{ticket}/attachments', [TicketController::class, 'uploadAttachment'])->name('api.tickets.attachments.store');
+        Route::post('tickets/{ticket}/attachments', [TicketController::class, 'uploadAttachment'])->middleware('throttle:api-write')->name('api.tickets.attachments.store');
         Route::get('tickets/{ticket}/attachments/{attachment}', [TicketAttachmentController::class, 'show'])->name('api.tickets.attachments.show');
     });
 
     Route::get('notifications', [NotificationController::class, 'index'])->name('api.notifications.index');
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('api.notifications.unread-count');
-    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');
-    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->name('api.notifications.read');
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->middleware('throttle:api-write')->name('api.notifications.read-all');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->middleware('throttle:api-write')->name('api.notifications.read');
 });

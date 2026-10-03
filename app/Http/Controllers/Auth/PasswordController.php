@@ -23,6 +23,7 @@ class PasswordController extends Controller
         ]);
 
         $request->user()->forceFill(['password' => $validated['password']])->save();
+        $request->user()->tokens()->delete();
 
         Auth::logoutOtherDevices($validated['password']);
 

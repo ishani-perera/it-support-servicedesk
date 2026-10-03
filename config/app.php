@@ -1,5 +1,19 @@
 <?php
 
+$trustedHosts = array_values(array_filter(array_map(
+    'trim',
+    explode(',', (string) env('APP_TRUSTED_HOSTS', '')),
+)));
+
+if ($trustedHosts === []) {
+    $trustedHosts = [parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'];
+}
+
+$trustedHostPatterns = array_map(
+    fn (string $host): string => '^'.preg_quote($host, '/').'$',
+    $trustedHosts,
+);
+
 return [
 
     /*
@@ -53,6 +67,10 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+
+    // Exact host allowlist used by TrustHosts. Avoid wildcards: password-reset
+    // and other absolute URLs must not inherit an untrusted Host header.
+    'trusted_hosts' => $trustedHostPatterns,
 
     /*
     |--------------------------------------------------------------------------

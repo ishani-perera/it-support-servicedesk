@@ -42,6 +42,7 @@ class TicketAttachmentController extends Controller
         abort_unless($disk->exists($attachment->file_path), 404);
 
         return $disk->download($attachment->file_path, $attachment->original_name, [
+            'Content-Type' => 'application/octet-stream',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
         ]);

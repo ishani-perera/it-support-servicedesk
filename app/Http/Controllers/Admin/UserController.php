@@ -124,6 +124,9 @@ class UserController extends Controller
             $user->is_active = (bool) $data['is_active'];
         }
         $user->save();
+        if (array_key_exists('role', $data) || (array_key_exists('is_active', $data) && ! $user->is_active)) {
+            $user->tokens()->delete();
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['data' => [
@@ -142,6 +145,9 @@ class UserController extends Controller
         $data = $request->validated();
         $user->is_active = (bool) $data['is_active'];
         $user->save();
+        if (! $user->is_active) {
+            $user->tokens()->delete();
+        }
 
         return $request->expectsJson()
             ? response()->json(['data' => ['id' => $user->id, 'is_active' => $user->is_active]])

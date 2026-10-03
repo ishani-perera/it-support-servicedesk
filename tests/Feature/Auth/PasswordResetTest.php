@@ -159,6 +159,7 @@ class PasswordResetTest extends TestCase
     public function test_a_valid_token_resets_the_password_and_it_is_stored_hashed(): void
     {
         $user = $this->user();
+        $user->createToken('existing-device');
         $oldHash = $user->password;
         $oldRemember = $user->remember_token;
         $token = $this->requestToken($user);
@@ -178,6 +179,7 @@ class PasswordResetTest extends TestCase
         $this->assertFalse(Hash::check(self::OLD, $user->password));
         $this->assertNotSame($oldRemember, $user->remember_token, 'remember-me token must be rotated');
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+        $this->assertSame(0, $user->tokens()->count(), 'password reset must revoke existing API tokens');
         // No auto-login from an e-mailed link.
         $this->assertGuest();
 

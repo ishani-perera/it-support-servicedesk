@@ -1,16 +1,16 @@
 # ServiceDesk REST API (Phase 10)
 
-All API routes are under `/api`. Send `Accept: application/json`; for protected routes send `Authorization: Bearer <access_token>`. Login returns a Sanctum personal access token once. The stored token is hashed, and `POST /api/auth/logout` revokes only the current bearer token.
+All API routes are under `/api`. Send `Accept: application/json`; for protected routes send `Authorization: Bearer <access_token>`. Login returns a Sanctum personal access token once. The stored token is hashed, expires after 480 minutes by default (`SANCTUM_TOKEN_EXPIRATION`), and `POST /api/auth/logout` revokes only the current bearer token. Authenticated API requests are limited to 60/minute per user; mutations are additionally limited to 20/minute per user. Login has an independent 10/minute IP throttle and existing 5-attempt email/IP lockout.
 
 ## Authentication
 
 | Method | Path | Body / result |
 |---|---|---|
-| POST | `/api/auth/login` | `email`, `password`; returns `data.access_token`, `data.token_type`, and safe `data.user` |
+| POST | `/api/auth/login` | `email`, `password`; returns `data.access_token`, `data.token_type`, `data.expires_at`, and safe `data.user` |
 | GET | `/api/auth/user` | Current safe user resource |
 | POST | `/api/auth/logout` | Revoke current bearer token |
 
-Login also uses the existing per-email-and-IP lockout, with an additional route throttle. Inactive accounts receive the same credential failure as invalid credentials. Never store the returned token in a public client or commit it.
+Login also uses the existing per-email-and-IP lockout, with an additional route throttle. Inactive accounts receive the same credential failure as invalid credentials. Password change/reset, role change, deactivation, and logout revoke existing personal access tokens. Never store the returned token in a public client or commit it.
 
 ## Tickets
 

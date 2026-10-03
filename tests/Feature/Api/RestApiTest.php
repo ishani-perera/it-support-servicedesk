@@ -26,7 +26,8 @@ class RestApiTest extends TestCase
     public function test_token_login_me_and_logout_revoke_only_the_current_token(): void
     {
         $response = $this->postJson('/api/auth/login', ['email' => $this->employeeA->email, 'password' => 'password'])
-            ->assertCreated()->assertJsonPath('data.user.id', $this->employeeA->id);
+            ->assertCreated()->assertJsonPath('data.user.id', $this->employeeA->id)
+            ->assertJsonStructure(['data' => ['access_token', 'token_type', 'expires_at', 'user']]);
         $plainToken = $response->json('data.access_token');
         $this->assertNotEmpty($plainToken);
         $this->assertDatabaseMissing('personal_access_tokens', ['token' => $plainToken]);
@@ -36,6 +37,28 @@ class RestApiTest extends TestCase
         $this->apiToken($plainToken)->postJson('/api/auth/logout')->assertOk();
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $tokenId]);
         $this->apiToken($plainToken)->getJson('/api/auth/user')->assertUnauthorized();
+    }
+
+    public function test_api_login_tokens_have_a_configured_expiry_and_expired_tokens_are_rejected(): void
+    {
+        config(['sanctum.expiration' => 1]);
+        $token = $this->postJson('/api/auth/login', ['email' => $this->employeeA->email, 'password' => 'password'])
+            ->assertCreated()->json('data.access_token');
+
+        $this->assertNotNull($this->employeeA->tokens()->firstOrFail()->expires_at);
+        $this->travel(2)->minutes();
+        $this->apiToken($token)->getJson('/api/auth/user')->assertUnauthorized();
+    }
+
+    public function test_api_write_rate_limit_is_enforced_per_authenticated_user(): void
+    {
+        $this->apiToken($this->supportOne->createToken('rate-limit')->plainTextToken);
+
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $this->patchJson('/api/tickets/'.$this->ticketA->id, ['title' => 'Rate limited '.$attempt])->assertOk();
+        }
+
+        $this->patchJson('/api/tickets/'.$this->ticketA->id, ['title' => 'The twenty-first write'])->assertTooManyRequests();
     }
 
     public function test_api_requires_a_token_and_refuses_invalid_credentials_and_inactive_accounts(): void
@@ -67,6 +90,16 @@ class RestApiTest extends TestCase
     public function test_support_can_view_colleague_ticket_but_modification_and_assignment_still_use_policies(): void
     {
         $this->apiToken($this->supportOne->createToken('test')->plainTextToken);
+        $ownerId = $this->ticketA->user_id;
+        $statusId = $this->ticketA->status_id;
+        $resolvedAt = $this->ticketA->resolved_at;
+        $this->patchJson('/api/tickets/'.$this->ticketA->id, [
+            'title' => 'Authorized support edit', 'user_id' => $this->employeeB->id,
+            'status_id' => $this->ticketB->status_id, 'resolved_at' => now()->toDateTimeString(),
+        ])->assertOk();
+        $this->assertSame($ownerId, $this->ticketA->fresh()->user_id);
+        $this->assertSame($statusId, $this->ticketA->fresh()->status_id);
+        $this->assertEquals($resolvedAt, $this->ticketA->fresh()->resolved_at);
         $this->getJson('/api/tickets/'.$this->ticketB->id)->assertOk();
         $this->patchJson('/api/tickets/'.$this->ticketA->id, ['title' => 'Authorized support edit'])->assertOk()
             ->assertJsonPath('data.title', 'Authorized support edit');
@@ -115,7 +148,8 @@ class RestApiTest extends TestCase
         $token = $this->employeeA->createToken('test')->plainTextToken;
         $this->apiToken($token)->getJson('/api/tickets/'.$this->ticketA->id.'/attachments')->assertOk()
             ->assertJsonPath('data.0.name', 'report.pdf')->assertJsonMissing(['file_path' => $this->attA->file_path]);
-        $this->getJson('/api/tickets/'.$this->ticketA->id.'/attachments/'.$this->attA->id)->assertOk();
+        $this->getJson('/api/tickets/'.$this->ticketA->id.'/attachments/'.$this->attA->id)
+            ->assertOk()->assertHeader('Content-Type', 'application/octet-stream');
         $this->getJson('/api/tickets/'.$this->ticketA->id.'/attachments/'.$this->attB->id)->assertNotFound();
         $this->getJson('/api/tickets/'.$this->ticketA->id.'/comments/'.$this->internalA->id)->assertForbidden();
         $this->getJson('/api/tickets/'.$this->ticketA->id.'/comments/'.$this->publicB->id)->assertNotFound();

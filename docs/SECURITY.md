@@ -117,26 +117,31 @@ Proof: `PasswordResetTest` (19 tests).
 
 ## Sessions and CSRF
 
+- Production/staging requests accept only the exact hostnames in APP_TRUSTED_HOSTS, defaulting to the host in APP_URL; this prevents Host-header poisoning of password-reset links. Add every legitimate canonical host to the comma-separated allowlist.
+- The example environment keeps APP_DEBUG=false so a production deployment cannot expose stack traces by inheriting the template value. Set a real APP_KEY and HTTPS canonical APP_URL during deployment.
+
 - Session id is regenerated on login (the framework's `SessionGuard::login()` migrates the session itself; the controller also calls `regenerate()` as defence in depth) and the session is invalidated + CSRF token regenerated on logout.
 - `SessionSecurityTest::test_a_pre_login_session_id_cannot_be_reused_…` runs against the **database** session driver: the planted id is dead after login, and the authenticated id is dead after logout.
 - `AuthenticateSession` is in the `web` group: changing a password invalidates every other session; "change my password" keeps only the current one.
-- Session cookie is `HttpOnly; SameSite=Lax` (verified on a live server). **Production must set `SESSION_SECURE_COOKIE=true`** (HTTPS only).
+- Session cookie is `HttpOnly; SameSite=Lax`; session data and the session cookie default to encrypted/Secure when `APP_ENV=production`. Explicit `SESSION_ENCRYPT` and `SESSION_SECURE_COOKIE` values can override those defaults.
 - Session ids never appear in URLs.
 - Every state-changing web route is in the `web` group (CSRF verified, empty except-list); a real-token / no-token / forged-token check is exercised with the middleware's test bypass switched off; every form renders `@csrf`.
 
 ## API (Sanctum) foundation
 
-No API endpoints exist (`routes/api.php` is empty by design). Verified with throw-away routes in `SanctumFoundationTest`:
+The REST API lives in `routes/api.php`; see `docs/API.md`. Verified by `SanctumFoundationTest`, `RestApiTest`, and `RouteProtectionTest`:
 
 - `auth:sanctum` guards routes; guests get **JSON 401** (even without an `Accept` header), not a redirect.
 - Invalid/revoked tokens → 401; tokens are stored hashed (sha256).
+- Issued bearer tokens expire after 480 minutes by default (`SANCTUM_TOKEN_EXPIRATION`) and logout revokes only the current token.
+- Password change/reset, user role change, or user deactivation revokes that user's existing personal access tokens.
+- Authenticated API routes are limited to 60 requests/minute per user; write routes have a 20/minute additional limit. Login has a 10/minute IP throttle plus a 5-attempt email/IP lockout.
 - Deactivated user's token → 403, soft-deleted user's token → 401 (`active` runs before binding).
 - **A valid token never bypasses Policies** (Employee A's token → Ticket B = 403); `role:*` works with tokens.
 
 ## Route surface
 
-16 application routes + `GET /up` (framework health check) + `GET /sanctum/csrf-cookie` (Sanctum package route).
-The ticket/comment/attachment/admin routes return small JSON documents: they are **authorization boundary endpoints**, not UI and not the REST API. Phase 04 and the UI phases replace the bodies and keep the `authorize()` calls.
+Application web routes and the `/api` REST routes are protected by their route middleware, active-account checks, and model policies. Nested comments and attachments use scoped route bindings.
 
 `RouteProtectionTest` fails if any route is neither on the public allowlist nor behind `auth` + `active`, if an admin route lacks `role:admin`, if a record-parameter route is public, if a nested route lacks scoped bindings, or if a registration / e-mail-verification / `storage/` route appears.
 
@@ -155,7 +160,7 @@ Genuine open points — none are hidden by a test:
 
 1. **403 vs 404 for other people's tickets.** The requirement says "forbidden", so existing-but-not-yours is 403 and a missing id is 404; an authenticated user can therefore learn that a ticket id *exists*. Ticket numbers are sequential, so this is low-value information, but if it matters switch the policies to `Response::denyAsNotFound()`.
 2. **Closed/resolved tickets.** Policies do not yet block comments/uploads on closed tickets — that is workflow (Phase 04).
-3. **Sanctum token lifetime.** `config/sanctum.php` has `expiration => null` (tokens never expire). Decide the lifetime and abilities when the API phase issues tokens.
+3. **MFA and token abilities.** The API uses role/policy authorization for every record operation. Sanctum token abilities are currently `*`; narrower token ability scopes could be introduced alongside clients that need them. MFA is not implemented.
 4. **Login lockout is per email+IP.** It stops guessing against one account from one address; it does not stop a distributed attack, and an attacker can lock a victim out for the lockout window. Acceptable for an internal tool; revisit with an IP-wide limiter if exposed publicly.
 5. **No MFA, no e-mail verification, no account-creation UI.** Admin-created accounts and an invite/forced-password-change flow belong to a later phase.
 6. **Mail.** `MAIL_MAILER=log` in `.env.example`: reset links are only logged until a real mailer is configured.

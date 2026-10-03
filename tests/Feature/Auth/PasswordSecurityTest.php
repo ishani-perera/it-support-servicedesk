@@ -65,6 +65,21 @@ class PasswordSecurityTest extends TestCase
         $this->assertTrue(Hash::check('Second-Passw0rd-yy', $second));
     }
 
+    public function test_changing_a_password_revokes_all_sanctum_tokens(): void
+    {
+        $user = User::factory()->create(['password' => 'First-Passw0rd-xx']);
+        $user->createToken('first');
+        $user->createToken('second');
+
+        $this->actingAs($user)->putJson('/password', [
+            'current_password' => 'First-Passw0rd-xx',
+            'password' => 'Second-Passw0rd-yy',
+            'password_confirmation' => 'Second-Passw0rd-yy',
+        ])->assertNoContent();
+
+        $this->assertSame(0, $user->tokens()->count());
+    }
+
     public function test_password_and_remember_token_are_never_serialised(): void
     {
         $user = User::factory()->create();
