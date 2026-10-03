@@ -7,7 +7,7 @@
     <a href="{{ route('tickets.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"><span aria-hidden="true">←</span> Back to my tickets</a>
     <div class="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div class="min-w-0 space-y-6">
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+            <section class="ui-card p-5 shadow-sm sm:p-7">
                 <div class="flex flex-wrap items-center gap-2"><span class="font-mono text-sm font-semibold text-slate-500">{{ $ticket->ticket_number }}</span><x-ticket-status-badge :status="$ticket->status" /><x-ticket-priority-badge :priority="$ticket->priority" /></div>
                 <h1 class="mt-3 break-words text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{{ $ticket->title }}</h1>
                 <p class="mt-3 text-sm leading-6 text-slate-500">Submitted {{ $ticket->created_at->format('M j, Y \a\t g:i A') }} <span class="px-1 text-slate-300">·</span> Updated {{ $ticket->updated_at->format('M j, Y \a\t g:i A') }}</p>
@@ -17,7 +17,7 @@
             <x-ticket-conversation :ticket="$ticket" :comments="$comments" :attachments="$attachments" />
         </div>
 
-        <aside class="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-24">
+        <aside class="h-fit ui-card p-5 shadow-sm xl:sticky xl:top-24">
             <x-ticket-sla :ticket="$ticket" :sla="$sla" />
             <h2 class="text-sm font-bold text-slate-950">Ticket information</h2>
             <dl class="mt-4 space-y-4">

@@ -4,7 +4,7 @@
 @section('content')
     <a href="{{ $creating ? route('admin.users.index') : route('admin.users.show', $user) }}" class="text-sm font-semibold text-slate-500 hover:text-indigo-700">← Back to users</a>
     <div class="mx-auto mt-5 max-w-3xl"><div class="mb-5"><p class="text-sm font-semibold text-indigo-700">Administrator access</p><h1 class="mt-1 text-2xl font-bold text-slate-950">{{ $creating ? 'Create user' : 'Edit user' }}</h1><p class="mt-1 text-sm text-slate-500">Role and department are validated together. Passwords are never shown after creation.</p></div>
-        <form method="POST" action="{{ $creating ? route('admin.users.store') : route('admin.users.update', $user) }}" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <form method="POST" action="{{ $creating ? route('admin.users.store') : route('admin.users.update', $user) }}" class="space-y-5 ui-card p-5 shadow-sm sm:p-7">
             @csrf @unless($creating) @method('PATCH') @endunless
             <div class="grid gap-4 sm:grid-cols-2">
                 <label><span class="mb-1.5 block text-sm font-semibold text-slate-700">Full name</span><input name="name" required maxlength="255" value="{{ old('name', $user->name) }}" class="w-full rounded-lg border-slate-300 text-sm @error('name') border-rose-500 @enderror">@error('name')<span class="mt-1 block text-xs text-rose-700">{{ $message }}</span>@enderror</label>
@@ -19,7 +19,7 @@
                 @endif
             </div>
             <p class="rounded-lg bg-indigo-50 p-3 text-xs leading-5 text-indigo-900">Employee and IT Support accounts must use an active department. Existing ticket records keep their original department.</p>
-            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-5"><a href="{{ $creating ? route('admin.users.index') : route('admin.users.show', $user) }}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</a><button class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">{{ $creating ? 'Create account' : 'Save changes' }}</button></div>
+            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-5"><a href="{{ $creating ? route('admin.users.index') : route('admin.users.show', $user) }}" class="ui-button-secondary">Cancel</a><button class="ui-button-primary">{{ $creating ? 'Create account' : 'Save changes' }}</button></div>
         </form>
     </div>
 @endsection

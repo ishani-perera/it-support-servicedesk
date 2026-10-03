@@ -6,7 +6,7 @@
 @section('content')
     <div class="mx-auto max-w-3xl">
         <a href="{{ route('tickets.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"><span aria-hidden="true">←</span> Back to my tickets</a>
-        <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section class="mt-5 ui-card overflow-hidden">
             <div class="border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white px-6 py-7 sm:px-8"><p class="text-sm font-semibold text-indigo-700">New support request</p><h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">What do you need help with?</h1><p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">Share a few details so our IT team can get started. You can follow the conversation from your ticket.</p></div>
             <form method="POST" action="{{ route('tickets.store') }}" enctype="multipart/form-data" class="space-y-6 px-6 py-7 sm:px-8" data-ticket-form data-loading-form>
                 @csrf
