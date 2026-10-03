@@ -20,6 +20,7 @@ class StoreTicketRequest extends FormRequest
             'category_id' => ['required', 'integer', Rule::exists('ticket_categories', 'id')->where('is_active', true)],
             'priority_id' => ['required', 'integer', Rule::exists('ticket_priorities', 'id')->where('is_active', true)],
             'department_id' => [Rule::requiredIf(fn () => $this->user()?->department_id === null), 'nullable', 'integer', Rule::exists('departments', 'id')->where('is_active', true)],
+            'file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,txt,png,jpg,jpeg,doc,docx,xls,xlsx'],
         ];
     }
 }

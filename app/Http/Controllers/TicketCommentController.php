@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTicketCommentRequest;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 
 /**
  * Phase 03 authorization boundary (see TicketController). The route uses
@@ -14,13 +15,17 @@ use Illuminate\Http\JsonResponse;
  */
 class TicketCommentController extends Controller
 {
-    public function store(StoreTicketCommentRequest $request, Ticket $ticket): JsonResponse
+    public function store(StoreTicketCommentRequest $request, Ticket $ticket): JsonResponse|RedirectResponse
     {
         $comment = $ticket->comments()->create([
             'user_id' => $request->user()->getKey(),
             'body' => $request->validated('body'),
             'is_internal' => $request->user()->isStaff() && $request->boolean('is_internal'),
         ]);
+
+        if ($request->input('_html_form') === '1') {
+            return redirect()->route('tickets.show', $ticket)->with('status', 'Your comment has been added.');
+        }
 
         return response()->json(['data' => ['id' => $comment->id, 'body' => $comment->body, 'is_internal' => $comment->is_internal]], 201);
     }

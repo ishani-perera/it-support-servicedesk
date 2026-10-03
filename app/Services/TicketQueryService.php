@@ -40,6 +40,12 @@ class TicketQueryService
                 ->orWhere('description', 'like', '%'.$term.'%')->orWhere('ticket_number', 'like', '%'.$term.'%'));
         }
 
-        return $query->latest()->paginate(min((int) ($filters['per_page'] ?? 15), 100))->withQueryString();
+        match ($filters['sort'] ?? 'newest') {
+            'oldest' => $query->oldest('created_at')->orderBy('id'),
+            'updated' => $query->latest('updated_at')->orderByDesc('id'),
+            default => $query->latest('created_at')->orderByDesc('id'),
+        };
+
+        return $query->paginate(min((int) ($filters['per_page'] ?? 15), 100))->withQueryString();
     }
 }

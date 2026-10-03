@@ -5,10 +5,12 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketCommentController;
 use App\Http\Controllers\TicketController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,7 +55,16 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     // Landing page after login (placeholder — the role dashboards come later).
-    Route::view('home', 'home')->name('home');
+    Route::get('home', function (Request $request) {
+        return $request->user()->isEmployee()
+            ? app(EmployeeDashboardController::class)($request)
+            : view('home');
+    })->name('home');
+
+    Route::middleware('role:employee')->group(function () {
+        Route::get('dashboard', EmployeeDashboardController::class)->name('employee.dashboard');
+        Route::get('tickets/create', [TicketController::class, 'create'])->name('tickets.create');
+    });
 
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
