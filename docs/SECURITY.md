@@ -1,6 +1,6 @@
-# Authentication & Authorization (Phase 03)
+# Security architecture and production review
 
-This document describes what Phase 03 builds, the rules it enforces, and — just as important — what it does **not** do yet.
+This document describes the application's current authentication, authorization, and data-protection rules. It is intended to be read alongside the current tests and [production deployment requirements](PRODUCTION.md); historical phase labels are not a statement that later application functionality is absent.
 Every guarantee below names the test that proves it. A claim without a test is listed under [Limits](#limits-and-decisions-to-revisit).
 
 - [Authentication](#authentication)
@@ -30,8 +30,8 @@ Built on Laravel's own primitives — the `web` session guard, the `Password` br
 | Remember me | opt-in checkbox only | `test_remember_me_issues_a_recaller_cookie_only_when_requested` |
 | Deactivated while signed in → out on next request | `active` middleware | `test_an_account_deactivated_while_signed_in_…` |
 | Passwords | bcrypt via the model's `hashed` cast; policy: min 12, mixed case, number (+ breached-password check in production) | `PasswordSecurityTest` |
-| Self-registration | **none** — accounts are created by Admin (later phase) | `test_there_is_no_public_registration_route` |
-| E-mail verification | **none** (it relies on signed URLs; see advisories) | `RouteProtectionTest::test_the_expected_security_routes_…` |
+| Self-registration | **none** — administrators provision accounts through the admin panel | `test_there_is_no_public_registration_route` |
+| E-mail verification | **none** (there is no email-verification route) | `RouteProtectionTest::test_the_expected_security_routes_…` |
 
 ## Roles and route middleware
 
@@ -66,7 +66,7 @@ Notes:
 - Support agents share read access to ticket details, comments (including internal notes), attachments and assignment history. Reassignment does not revoke team read access, but only the current assignee may change status or ticket fields, and assignment actions remain limited to the unassigned queue or tickets the agent currently holds (`test_reassignment_changes_who_can_modify_status_but_not_team_view_access`).
 - `before()` in every policy only ever **denies** (inactive users — also covers stale Sanctum tokens). It never grants, because a blanket `admin => true` would also grant abilities that were never defined. Undefined abilities (e.g. deleting a ticket) are denied even for admin.
 - `Ticket::scopeVisibleTo($user)` is the query-side twin of `view`. **Use it for every list.** `test_visible_to_scope_matches_the_view_policy_…` fails if the two ever disagree.
-- This phase decides *who*, not *when*. Workflow rules (valid status transitions, closed tickets being read-only, who may re-open) are Phase 04.
+- `TicketWorkflowService` validates status transitions. Ticket policies separately control the actors who may change status or ticket fields; the known closed-ticket comment/upload behavior is recorded under [limits](#limits-and-decisions-to-revisit).
 
 ## Policies
 
@@ -159,10 +159,10 @@ Application web routes and the `/api` REST routes are protected by their route m
 Genuine open points — none are hidden by a test:
 
 1. **403 vs 404 for other people's tickets.** The requirement says "forbidden", so existing-but-not-yours is 403 and a missing id is 404; an authenticated user can therefore learn that a ticket id *exists*. Ticket numbers are sequential, so this is low-value information, but if it matters switch the policies to `Response::denyAsNotFound()`.
-2. **Closed/resolved tickets.** Policies do not yet block comments/uploads on closed tickets — that is workflow (Phase 04).
+2. **Closed tickets.** Comment and attachment policies are based on the actor's role, ticket ownership, and assignment scope; they do not reject writes solely because a ticket is closed. Confirm that this is the intended workflow before exposing the service broadly, or add a status-aware rule and regression tests.
 3. **MFA and token abilities.** The API uses role/policy authorization for every record operation. Sanctum token abilities are currently `*`; narrower token ability scopes could be introduced alongside clients that need them. MFA is not implemented.
 4. **Login lockout is per email+IP.** It stops guessing against one account from one address; it does not stop a distributed attack, and an attacker can lock a victim out for the lockout window. Acceptable for an internal tool; revisit with an IP-wide limiter if exposed publicly.
-5. **No MFA, no e-mail verification, no account-creation UI.** Admin-created accounts and an invite/forced-password-change flow belong to a later phase.
+5. **No MFA or e-mail verification.** Accounts are created by administrators; there is no invitation or forced-password-change flow. Decide whether MFA and verified e-mail are required by the deployment's risk profile.
 6. **Mail.** `MAIL_MAILER=log` in `.env.example`: reset links are only logged until a real mailer is configured.
-7. **Laravel 11 is end-of-life** and `composer audit` reports 4 unpatched framework advisories (fixed in ≥ 12.69 / ≥ 13.30). Relevance to this code: the `email` validation-rule CRLF issue is mitigated for the only place addresses reach mail headers (`EmailField`); signed URLs are not used anywhere (no e-mail verification, no signed downloads) and the framework's signed `storage/{path}` route is disabled; debug-page XSS only applies with `APP_DEBUG=true`. Upgrade before production.
+7. **Unsupported framework and dependency advisories.** Laravel 11 security support ended on March 12, 2026. The current lock file uses `laravel/framework` 11.57.0; `composer audit --locked` reports four advisories across three issues: debug-page XSS (only reachable with debug enabled), temporary signed-URL path confusion (this app does not use temporary signed URLs and private-disk serving is disabled), and the default email validation CRLF issue (password-reset addresses are also checked by `EmailField`). These mitigations reduce exposure on specific paths but do not make an unsupported framework safe to deploy. Upgrade to a supported Laravel release and rerun security audit and the full suite before deployment.
 8. **Test-harness note.** The in-process test client keeps one session store and auth guard for a whole test. Tests that switch users use `actAs()` (resets both) — otherwise `AuthenticateSession` correctly logs the second user out because the first user's password hash is still in the session. Real browsers are unaffected; the live-server check confirmed this.

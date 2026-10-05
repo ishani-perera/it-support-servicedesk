@@ -14,6 +14,6 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertOk()->assertSee('IT support, all in one place.')->assertSee('Sign in to ServiceDesk');
     }
 }

@@ -26,10 +26,8 @@ use Illuminate\Support\Facades\Route;
 | Web routes (session authentication, CSRF-protected by the "web" group)
 |--------------------------------------------------------------------------
 |
-| Phase 03 intentionally defines only the authentication/authorization
-| foundation. The ticket/admin routes below are minimal "authorization
-| boundary" endpoints: they exist so the Policies are enforced and tested over
-| real HTTP. Dashboards, ticket CRUD and the REST API are later phases.
+| Routes are grouped around authentication, roles, and record-level policies.
+| Controllers delegate domain changes to FormRequests, policies, and services.
 |
 | Rules for every route added in future phases:
 |   - behind ['auth', 'active'] (or auth:sanctum + active for the API);
@@ -62,7 +60,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    // Landing page after login (placeholder — the role dashboards come later).
+    // Send each authenticated role to its own working dashboard.
     Route::get('home', function (Request $request) {
         return match (true) {
             $request->user()->isEmployee() => app(EmployeeDashboardController::class)($request),

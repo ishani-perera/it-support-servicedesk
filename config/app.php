@@ -14,6 +14,15 @@ $trustedHostPatterns = array_map(
     $trustedHosts,
 );
 
+$trustedProxies = array_values(array_filter(array_map(
+    'trim',
+    explode(',', (string) env('APP_TRUSTED_PROXIES', '')),
+)));
+
+if (array_intersect($trustedProxies, ['*', '**']) !== []) {
+    throw new InvalidArgumentException('APP_TRUSTED_PROXIES must list explicit IP addresses or CIDR ranges.');
+}
+
 return [
 
     /*
@@ -71,6 +80,9 @@ return [
     // Exact host allowlist used by TrustHosts. Avoid wildcards: password-reset
     // and other absolute URLs must not inherit an untrusted Host header.
     'trusted_hosts' => $trustedHostPatterns,
+
+    // Trust forwarded headers only from deployment-configured proxy IPs/CIDRs.
+    'trusted_proxies' => $trustedProxies,
 
     /*
     |--------------------------------------------------------------------------

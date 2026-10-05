@@ -5,8 +5,8 @@
 
 @section('content')
     @php($hasFilters = collect(['search', 'status', 'priority_id', 'category_id'])->contains(fn ($key) => request()->filled($key)))
-    <section class="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p class="text-sm font-semibold text-indigo-700">Support requests</p><h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">My tickets</h1><p class="mt-2 text-sm text-slate-500">Follow progress and find any request you’ve sent to IT.</p></div>
+    <section class="ui-page-toolbar mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div><p class="ui-eyebrow">Support requests</p><h1 class="ui-page-title text-3xl">My tickets</h1><p class="mt-2 text-sm text-slate-500">Follow progress and find any request you’ve sent to IT.</p></div>
         <a href="{{ route('tickets.create') }}" class="inline-flex items-center justify-center gap-2 ui-button-primary px-5 py-3">＋ Create ticket</a>
     </section>
 
@@ -17,7 +17,7 @@
             <label><span class="mb-1.5 block text-xs font-semibold text-slate-600">Priority</span><select name="priority_id" class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="">All priorities</option>@foreach ($priorities as $priority)<option value="{{ $priority->id }}" @selected((string) ($filters['priority_id'] ?? '') === (string) $priority->id)>{{ $priority->name }}</option>@endforeach</select></label>
             <label><span class="mb-1.5 block text-xs font-semibold text-slate-600">Category</span><select name="category_id" class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="">All categories</option>@foreach ($categories as $category)<option value="{{ $category->id }}" @selected((string) ($filters['category_id'] ?? '') === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></label>
             <label><span class="mb-1.5 block text-xs font-semibold text-slate-600">Sort by</span><select name="sort" class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="newest" @selected(($filters['sort'] ?? 'newest') === 'newest')>Newest first</option><option value="oldest" @selected(($filters['sort'] ?? '') === 'oldest')>Oldest first</option><option value="updated" @selected(($filters['sort'] ?? '') === 'updated')>Recently updated</option></select></label>
-            <div class="flex items-end gap-2 sm:col-span-2 xl:col-span-6"><button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">Apply filters</button><a href="{{ route('tickets.index') }}" class="ui-button-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">Clear</a><span class="ml-auto pb-2 text-xs text-slate-500">{{ $tickets->total() }} {{ Str::plural('ticket', $tickets->total()) }}</span></div>
+            <div class="flex items-end gap-2 sm:col-span-2 xl:col-span-6"><button type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">Apply filters</button><a href="{{ route('tickets.index') }}" class="ui-button-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">Clear</a><span class="ml-auto pb-2 text-xs text-slate-500">{{ $tickets->total() }} {{ Str::plural('ticket', $tickets->total()) }}</span></div>
         </form>
     </section>
 

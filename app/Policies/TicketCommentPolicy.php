@@ -11,8 +11,7 @@ use App\Models\User;
  * REALLY belongs to — never a ticket id taken from the URL), with one extra
  * rule: internal notes are staff-only.
  *
- * Comments are not editable or deletable in Phase 03 (no ability defined =>
- * denied).
+ * Comments remain immutable: no edit or delete ability is defined.
  */
 class TicketCommentPolicy
 {

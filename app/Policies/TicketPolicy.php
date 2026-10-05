@@ -24,8 +24,9 @@ use App\Models\User;
  *    abilities that were never defined.
  *  - Every ability is explicit. There is deliberately no delete ability:
  *    tickets are never deleted.
- *  - Workflow rules (valid status transitions, closed tickets being read-only,
- *    etc.) belong to Phase 04. This class decides WHO, not WHEN.
+ *  - This class decides WHO may act. TicketWorkflowService decides which
+ *    status transitions are valid. Comment/upload writes currently do not
+ *    depend on ticket status (see docs/SECURITY.md).
  *  - Keep Ticket::scopeVisibleTo() in sync with view().
  */
 class TicketPolicy

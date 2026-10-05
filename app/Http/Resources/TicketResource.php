@@ -15,6 +15,7 @@ class TicketResource extends JsonResource
             'ticket_number' => $this->ticket_number,
             'title' => $this->title,
             'description' => $this->when($request->routeIs('api.tickets.show'), $this->description),
+            'resolution' => $this->when($request->routeIs('api.tickets.show'), $this->resolution),
             'status' => $this->whenLoaded('status', fn () => ['id' => $this->status->id, 'name' => $this->status->name, 'slug' => $this->status->slug]),
             'priority' => $this->whenLoaded('priority', fn () => ['id' => $this->priority->id, 'name' => $this->priority->name, 'level' => $this->priority->level]),
             'category' => $this->whenLoaded('category', fn () => ['id' => $this->category->id, 'name' => $this->category->name]),

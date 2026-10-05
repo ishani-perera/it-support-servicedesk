@@ -36,6 +36,24 @@ class AdminPanelTest extends TestCase
         $this->actAs($this->supportOne)->get('/admin/')->assertForbidden();
     }
 
+    public function test_admin_ticket_navigation_renders_blade_list_details_and_web_page_two(): void
+    {
+        for ($index = 0; $index < 12; $index++) {
+            $this->makeTicket($this->employeeA, ['title' => 'Admin pagination ticket '.$index]);
+        }
+
+        $this->actAs($this->admin)->get('/tickets')
+            ->assertOk()->assertViewIs('admin.tickets.index')->assertSee('All tickets')->assertSee('Open ticket')
+            ->assertDontSee('"current_page"');
+
+        $this->actAs($this->admin)->get('/tickets?page=2')
+            ->assertOk()->assertViewIs('admin.tickets.index')->assertViewHas('tickets', fn ($tickets) => $tickets->currentPage() === 2);
+
+        $this->actAs($this->admin)->get('/tickets/'.$this->ticketA->id)
+            ->assertOk()->assertViewIs('support.tickets.show')->assertSee($this->ticketA->title)->assertSee('Assignment history')
+            ->assertDontSee('"data"');
+    }
+
     public function test_user_list_search_filters_pagination_and_sensitive_fields(): void
     {
         $this->actAs($this->admin)->get('/admin/users/create')->assertOk()->assertSee('Create user');

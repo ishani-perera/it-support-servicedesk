@@ -21,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustHosts(at: fn () => config('app.trusted_hosts'), subdomains: false);
+        $middleware->trustHosts(at: fn () => array_values(array_filter(array_map('trim', explode(',', (string) env('APP_TRUSTED_HOSTS', ''))))), subdomains: false);
+        $middleware->trustProxies(at: array_values(array_filter(array_map('trim', explode(',', (string) env('APP_TRUSTED_PROXIES', ''))))) ?: null);
 
         $middleware->alias([
             'role' => EnsureUserHasRole::class,

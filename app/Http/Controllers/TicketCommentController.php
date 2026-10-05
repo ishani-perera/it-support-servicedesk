@@ -11,9 +11,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Phase 03 authorization boundary (see TicketController). The route uses
- * scoped bindings, so a comment that does not belong to {ticket} is a 404;
- * the policy independently checks the comment's REAL parent ticket anyway.
+ * Nested route binding and the comment policy both verify the comment's real
+ * parent ticket before it is exposed.
  */
 class TicketCommentController extends Controller
 {

@@ -18,6 +18,13 @@ class TrustedHostTest extends TestCase
         $this->assertSame(['^'.preg_quote($host, '/').'$'], config('app.trusted_hosts'));
     }
 
+    public function test_trusted_proxy_allowlist_never_uses_a_wildcard(): void
+    {
+        $this->assertIsArray(config('app.trusted_proxies'));
+        $this->assertNotContains('*', config('app.trusted_proxies'));
+        $this->assertNotContains('**', config('app.trusted_proxies'));
+    }
+
     public function test_untrusted_host_headers_are_rejected_by_the_configured_allowlist(): void
     {
         Request::setTrustedHosts(config('app.trusted_hosts'));

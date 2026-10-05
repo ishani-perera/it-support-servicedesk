@@ -62,7 +62,7 @@ erDiagram
 ### Integrity details worth knowing
 
 * **Attachment ↔ comment consistency.** `comment_id` uses a *composite* FK `(ticket_id, comment_id) → ticket_comments(ticket_id, id)`, so the database rejects an attachment that points at a comment from a different ticket. (MySQL skips the check when `comment_id` is NULL, which is why the plain `ticket_id` FK also exists.)
-* **Comment deletion cascades to its attachments** (instead of `SET NULL`) deliberately: `SET NULL` would turn an attachment of an *internal* note into a ticket-level file visible to the requester. Removing the physical files is the job of the upload service in a later phase.
+* **Comment deletion cascades to its attachment records** (instead of `SET NULL`) deliberately: `SET NULL` would turn an attachment of an *internal* note into a ticket-level file visible to the requester. No application delete endpoint currently exists; if privileged maintenance deletes a ticket/comment directly, it must also remove the corresponding private files.
 * **One open assignment per ticket.** `ticket_assignments.is_current` is a *generated* column (`1` while `unassigned_at IS NULL`, else `NULL`) with a unique index on `(ticket_id, is_current)`. History rows are unlimited; open rows are limited to one per ticket by the database. A reassignment must close the previous row first (do it in a transaction in the service layer).
 * **`tickets.department_id`** is intentionally captured at creation (requester's department then) so historical reports stay correct if the user later moves department.
 * **`users.role`** is a DB `ENUM` built from `App\Enums\UserRole`, so the DB rejects invalid roles. Adding a role = new enum case **and** a migration altering the column.
@@ -116,7 +116,7 @@ Set these explicitly in trusted code (services/policies), never from request inp
 
 ## Ticket number
 
-Format `INC-YYYY-XXXXXX`, `UNIQUE` in the database. Generation is **not** implemented in Phase 01 (it must be a concurrency-safe service — e.g. a per-year counter row locked with `SELECT … FOR UPDATE` — never `count()+1`).
+New tickets receive a `TKT-YYYY-XXXXXX` number from `App\Services\TicketNumberService`. A per-year counter row is locked inside the ticket creation transaction; the unique database constraint is the final collision guard. The demo data retains its seeded `INC-2026-…` sample numbers.
 
 ## Tests
 
@@ -159,25 +159,19 @@ Design notes:
 * `assign($ticket, $assignee, $assigner, $note = null, $at = null)` — closes the open assignment (if any) and inserts a new row in one transaction while holding a row lock on the ticket. Assigning the current assignee again is a no-op.
 * `unassign($ticket, $at = null)` — closes the open assignment, returning the ticket to the unassigned queue.
 * Assignee and assigner must be **active IT staff** (support/admin); an assignment cannot end before it began.
-* Deliberately out of scope until Phase 03+: authorisation, ticket-status transitions, notifications.
+* This service is an integrity primitive, not an authorization boundary. `TicketAssignmentManager` performs policy authorization and coordinates status/notification behavior before calling it.
 * Resolved/Closed tickets keep their last assignment open as the "assignee of record"; closing it on resolution is a workflow decision for a later phase.
 
 ## Demo data
 
 Seeders (idempotent, transactional, fixed timestamps) run in dependency order:
 `Department → TicketCategory → TicketPriority → TicketStatus → DemoUser → DemoTicket → DemoAssignment → DemoComment`.
-Content lives in `database/seeders/Data/DemoTicketData.php`. Tickets are matched on `ticket_number` (`INC-2026-000001…26`, fixed because the real generator is a later-phase service); users on `email`. Re-running never duplicates, never rewrites existing tickets, and never overwrites a changed password. Demo seeders never run in production.
+Content lives in `database/seeders/Data/DemoTicketData.php`. Seeded tickets are matched on their stable `INC-2026-…` sample numbers; newly created tickets use the `TKT-YYYY-XXXXXX` generator. Users are matched on `email`. Re-running never duplicates, never rewrites existing tickets, and never overwrites a changed password. Demo seeders never run in production.
 
 Factories: `UserFactory` (roles/inactive/department states), `DepartmentFactory`, `TicketFactory`, `TicketCommentFactory`, `TicketAssignmentFactory`. `TicketFactory` expects master data to be seeded.
 
-## Known security advisories (Laravel 11)
+## Framework support and dependency audit
 
-Laravel 11 reached end of life (security fixes ended March 2026). `composer audit` on the latest 11.x (11.57.0) reports:
+Laravel's official support schedule ended security fixes for Laravel 11 on **March 12, 2026**. The current lock file pins `laravel/framework` 11.57.0. On October 3, 2026, `composer audit --locked` reported four advisory records affecting this package, representing three distinct issues: debug-page XSS (CVE-2026-102279), temporary signed URL path confusion (GHSA-crmm-hgp2-wgrp), and CRLF injection in the default email validation rule (CVE-2026-48019 / GHSA-5vg9-5847-vvmq, reported twice by the advisory sources).
 
-| Advisory | Severity | Fixed in | Relevance now |
-|---|---|---|---|
-| CVE-2026-48019 / GHSA-5vg9-5847-vvmq — CRLF injection in the default `email` validation rule (affects flows that send mail to user-supplied addresses) | High | 12.60.0, 13.10.0 | **Relevant from Phase 03** (password reset) and notifications. Not reachable yet: no routes or mail flows exist. |
-| GHSA-crmm-hgp2-wgrp — temporary signed URL path confusion | Medium | 12.61.1, 13.12.0 | Not used (no signed URLs). Avoid until upgraded. |
-| CVE-2026-102279 / GHSA-jh5r-qr3c-85q8 — XSS in debug page | Low | 12.69.0, 13.30.0 | Only when `APP_DEBUG=true`. Keep debug **off** in any shared environment. |
-
-Recommended path: stay on 11 for Phases 03–… only in trusted/dev environments, and upgrade to a supported release (12.x or 13.x) **before production**. Phase 01 code already ran on 13.34 and the Phase 02 changes use only APIs available in 11–13, so the upgrade is expected to be low-risk. Until then, never send mail to unvalidated addresses and strip CR/LF from any user-supplied value used in mail headers.
+The signed URL surface is not used and serving the private disk through Laravel's signed storage route is disabled. Debug exposure requires debug mode, which must remain off in shared environments. Password-reset input has an additional CR/LF/NUL rejection. These application-level mitigations reduce exposure but do not make an unsupported framework appropriate for production. Upgrade to a supported Laravel release and rerun `composer audit --locked`, the complete test suite, and the API/security checks before deployment. See [production deployment requirements](PRODUCTION.md).

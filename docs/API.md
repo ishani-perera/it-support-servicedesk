@@ -20,7 +20,7 @@ Login also uses the existing per-email-and-IP lockout, with an additional route 
 | POST | `/api/tickets` | Create ticket (may include `file`) |
 | GET | `/api/tickets/{ticket}` | View authorized ticket and SLA |
 | PATCH | `/api/tickets/{ticket}` | Update allowed fields through existing policy/service |
-| PATCH | `/api/tickets/{ticket}/status` | Body: `status` canonical slug |
+| PATCH | `/api/tickets/{ticket}/status` | Body: `status` canonical slug; `resolution` is required when setting status to `resolved` |
 | POST | `/api/tickets/{ticket}/assignments` | Body: `assigned_to`, optional `note` |
 | DELETE | `/api/tickets/{ticket}/assignments/current` | Unassign when authorized |
 | GET / POST | `/api/tickets/{ticket}/comments` | List visible comments / create a comment (`body`, optional `is_internal`) |
@@ -28,7 +28,7 @@ Login also uses the existing per-email-and-IP lockout, with an additional route 
 | GET | `/api/tickets/{ticket}/attachments/{attachment}` | Secure authorized file download |
 | GET | `/api/lookups` | Active departments, categories, priorities, statuses |
 
-Ticket listing supports `search`, `status`, `priority_id`, `category_id`, `department_id`, `assigned_to`, `requester_id`, `from`, `to`, `ticket_number`, `assignment`, `sort`, and `per_page` (maximum 100). Responses use Laravel JSON resource pagination (`data`, `links`, `meta`). Employees see only their own tickets and public comments; IT Support visibility and modification rules continue to come from existing policies. Admin does not bypass undefined policy abilities.
+Ticket listing supports `search`, `status`, `priority_id`, `category_id`, `department_id`, `assigned_to`, `requester_id`, `from`, `to`, `ticket_number`, `assignment`, `sort`, and `per_page` (maximum 100). Responses use Laravel JSON resource pagination (`data`, `links`, `meta`). Ticket detail includes the resolution when one has been recorded. Employees see only their own tickets and public comments; IT Support visibility and modification rules continue to come from existing policies. Admin does not bypass undefined policy abilities.
 
 ## Notifications
 

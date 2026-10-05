@@ -2,7 +2,7 @@
 @section('title', 'Users')
 @section('topline', 'User management')
 @section('content')
-    <div class="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-semibold text-indigo-700">Directory</p><h1 class="mt-1 text-2xl font-bold text-slate-950">Users</h1><p class="mt-1 text-sm text-slate-500">Manage roles, account status, and departments.</p></div><a href="{{ route('admin.users.create') }}" class="ui-button-primary">Create user</a></div>
+    <div class="ui-page-toolbar mb-6 flex flex-wrap items-end justify-between gap-4"><div><p class="ui-eyebrow">Directory</p><h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">Users & technicians</h1><p class="mt-1 text-sm text-slate-500">Manage roles, account status, and departments.</p></div><a href="{{ route('admin.users.create') }}" class="ui-button-primary">Create user <span aria-hidden="true">+</span></a></div>
     <form method="GET" class="mb-5 grid gap-3 ui-card p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-6">
         <label class="xl:col-span-2"><span class="mb-1 block text-xs font-semibold text-slate-600">Search</span><input name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Name, email, employee ID" class="w-full rounded-lg border-slate-300 text-sm"></label>
         <label><span class="mb-1 block text-xs font-semibold text-slate-600">Role</span><select name="role" class="w-full rounded-lg border-slate-300 text-sm"><option value="">All roles</option>@foreach ($roles as $role)<option value="{{ $role->value }}" @selected(($filters['role'] ?? '') === $role->value)>{{ $role->label() }}</option>@endforeach</select></label>

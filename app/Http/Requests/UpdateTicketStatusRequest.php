@@ -15,6 +15,9 @@ class UpdateTicketStatusRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['status' => ['required', 'string', Rule::in(TicketStatusSlug::values())]];
+        return [
+            'status' => ['required', 'string', Rule::in(TicketStatusSlug::values())],
+            'resolution' => ['required_if:status,'.TicketStatusSlug::Resolved->value, 'nullable', 'string', 'max:20000'],
+        ];
     }
 }

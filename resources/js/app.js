@@ -77,6 +77,33 @@ document.querySelectorAll('[data-file-picker]').forEach((picker) => {
         input.setCustomValidity(file.size > 10 * 1024 * 1024 ? 'Choose a file smaller than 10 MB.' : '');
     });
 
+    const dropZone = picker.querySelector('[data-file-dropzone]');
+    if (dropZone) {
+        const clearDropState = () => dropZone.classList.remove('border-indigo-500', 'bg-indigo-50', 'ring-2', 'ring-indigo-500/20');
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            dropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dropZone.classList.add('border-indigo-500', 'bg-indigo-50', 'ring-2', 'ring-indigo-500/20');
+            });
+        });
+
+        ['dragleave', 'dragend'].forEach((eventName) => {
+            dropZone.addEventListener(eventName, (event) => {
+                if (eventName === 'dragend' || !dropZone.contains(event.relatedTarget)) clearDropState();
+            });
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            clearDropState();
+            if (!event.dataTransfer?.files?.length) return;
+
+            input.files = event.dataTransfer.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    }
+
     remove.addEventListener('click', () => {
         input.value = '';
         input.setCustomValidity('');
@@ -97,6 +124,22 @@ document.querySelectorAll('[data-ticket-form]').forEach((form) => {
 
     validateText(title, 'Enter a short title for your request.');
     validateText(description, 'Describe the issue so the IT team can help.');
+});
+
+document.querySelectorAll('[data-resolution-form]').forEach((form) => {
+    const status = form.querySelector('[data-resolution-status]');
+    const field = form.querySelector('[data-resolution-field]');
+    const input = form.querySelector('[data-resolution-input]');
+    if (!status || !field || !input) return;
+
+    const syncResolution = () => {
+        const required = status.value === 'resolved';
+        field.classList.toggle('hidden', !required);
+        input.required = required;
+    };
+
+    status.addEventListener('change', syncResolution);
+    syncResolution();
 });
 
 document.querySelectorAll('[data-loading-form]').forEach((form) => {

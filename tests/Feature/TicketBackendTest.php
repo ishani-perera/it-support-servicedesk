@@ -80,11 +80,11 @@ class TicketBackendTest extends TestCase
         $this->actingAs($this->supportOne)->patchJson('/tickets/'.$ticket->id.'/status', ['status' => 'in_progress'])->assertOk();
         $workflow = app(TicketWorkflowService::class);
         $workflow->transition($ticket, TicketStatusSlug::WaitingForUser, $this->supportOne);
-        $workflow->transition($ticket, TicketStatusSlug::Resolved, $this->supportOne);
+        $workflow->transition($ticket, TicketStatusSlug::Resolved, $this->supportOne, 'Reconfigured the affected service and confirmed access.');
         $this->assertNotNull($ticket->fresh()->resolved_at);
         $workflow->transition($ticket, TicketStatusSlug::Closed, $this->supportOne);
         $this->assertNotNull($ticket->fresh()->closed_at);
-        $workflow->transition($ticket, TicketStatusSlug::Resolved, $this->supportOne);
+        $workflow->transition($ticket, TicketStatusSlug::Resolved, $this->supportOne, 'Confirmed the reported issue is fixed.');
         $this->assertNull($ticket->fresh()->closed_at);
     }
 

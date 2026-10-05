@@ -12,10 +12,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Integrity-safe primitives for ticket assignment HISTORY.
  *
- * Scope (Phase 02): data integrity only. This service deliberately does NOT
- * authorise the caller, change the ticket status, or send notifications —
- * those belong to the ticket workflow / policy layers of later phases, which
- * will call into this class.
+ * This service provides data-integrity operations only. TicketAssignmentManager
+ * authorizes calls and coordinates workflow/notification behavior around it.
  *
  * Guarantees:
  *  - a reassignment CLOSES the previous row (unassigned_at) and inserts a new

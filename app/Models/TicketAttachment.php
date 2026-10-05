@@ -26,7 +26,7 @@ class TicketAttachment extends Model
     /**
      * `file_path` and the server-generated `file_name` reveal the internal storage
      * layout and must never appear in serialised/public output; files are served
-     * through an authorised download route (later phase). `original_name` is the
+     * through an authorised download route. `original_name` is the
      * display name.
      *
      * @var list<string>

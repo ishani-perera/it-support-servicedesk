@@ -1,20 +1,20 @@
 @props(['ticket', 'comments', 'attachments'])
 
 <section class="ui-card overflow-hidden" aria-labelledby="conversation-heading">
-    <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:px-7">
-        <div><h2 id="conversation-heading" class="text-lg font-bold tracking-tight text-slate-950">Conversation</h2><p class="mt-1 text-sm text-slate-500">Ticket updates and replies in one place.</p></div>
-        <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-slate-600">{{ $comments->count() }} {{ Str::plural('message', $comments->count()) }}</span>
+    <div class="ui-panel-heading justify-between gap-3">
+        <div class="flex items-start gap-3"><span class="ui-icon-tile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h6m-8 8 2.3-3H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11l1 3Z" /></svg></span><div><h2 id="conversation-heading" class="text-lg font-bold tracking-tight text-slate-950">Conversation</h2><p class="mt-1 text-sm text-slate-500">Ticket updates and replies in one place.</p></div></div>
+        <span class="shrink-0 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold tabular-nums text-indigo-800">{{ $comments->count() }} {{ Str::plural('message', $comments->count()) }}</span>
     </div>
 
     @if ($comments->isEmpty())
         <div class="px-6 py-11 text-center"><span class="mx-auto grid size-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-700" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h6m-8 8 2.3-3H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11l1 3Z"/></svg></span><p class="mt-3 text-sm font-semibold text-slate-800">No replies yet</p><p class="mt-1 text-sm text-slate-500">Messages about this ticket will appear here.</p></div>
     @else
-        <ol class="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+        <ol class="relative space-y-4 px-4 py-5 before:absolute before:bottom-8 before:left-[2.15rem] before:top-8 before:w-px before:bg-gradient-to-b before:from-indigo-200 before:via-slate-200 before:to-transparent before:content-[''] sm:px-6 sm:py-6">
             @foreach ($comments as $comment)
                 @if (! $comment->is_internal || auth()->user()->can('viewInternalNotes', $ticket))
-                    <li class="flex items-start gap-3 sm:gap-4">
-                        <span class="grid size-10 shrink-0 place-items-center rounded-full ring-2 ring-white {{ $comment->user->isStaff() ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700' }} text-xs font-bold shadow-sm" aria-hidden="true">{{ $comment->user->initials ?: Str::upper(Str::substr($comment->user->name, 0, 1)) }}</span>
-                        <article @class(['min-w-0 flex-1 rounded-2xl border p-4 sm:p-5', 'border-amber-200 bg-amber-50/50' => $comment->is_internal, 'border-slate-200 bg-white' => ! $comment->is_internal])>
+                    <li class="relative z-10 flex items-start gap-3 sm:gap-4">
+                        <span class="grid size-10 shrink-0 place-items-center rounded-full ring-4 ring-white {{ $comment->is_internal ? 'bg-amber-200 text-amber-900' : ($comment->user->isStaff() ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700') }} text-xs font-bold shadow-sm" aria-hidden="true">{{ $comment->user->initials ?: Str::upper(Str::substr($comment->user->name, 0, 1)) }}</span>
+                        <article @class(['min-w-0 flex-1 rounded-2xl border p-4 transition-shadow hover:shadow-md sm:p-5', 'ui-conversation-internal' => $comment->is_internal, 'ui-conversation-public' => ! $comment->is_internal])>
                             <header class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                                 <div class="min-w-0"><h3 class="text-sm font-semibold text-slate-950">{{ $comment->user->name }}@if ($comment->user->isStaff())<span class="ml-2 inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">IT team</span>@endif</h3><time class="mt-1 block text-xs text-slate-500" datetime="{{ $comment->created_at->toIso8601String() }}">{{ $comment->created_at->format('M j, Y · g:i A') }}</time></div>
                                 @if ($comment->is_internal)<span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-900"><span class="size-1.5 rounded-full bg-amber-600" aria-hidden="true"></span>Internal note</span>@else<span class="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sky-800"><span class="size-1.5 rounded-full bg-sky-500" aria-hidden="true"></span>Public reply</span>@endif

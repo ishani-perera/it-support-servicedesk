@@ -22,9 +22,15 @@ class TicketWorkflowService
         'closed' => ['resolved'],
     ];
 
-    public function transition(Ticket $ticket, TicketStatusSlug $target, User $actor): Ticket
+    /** @return list<TicketStatusSlug> */
+    public function availableTransitions(TicketStatusSlug $current): array
     {
-        return DB::transaction(function () use ($ticket, $target, $actor) {
+        return array_map(TicketStatusSlug::from(...), self::TRANSITIONS[$current->value] ?? []);
+    }
+
+    public function transition(Ticket $ticket, TicketStatusSlug $target, User $actor, ?string $resolution = null): Ticket
+    {
+        return DB::transaction(function () use ($ticket, $target, $actor, $resolution) {
             $ticket = Ticket::query()->lockForUpdate()->findOrFail($ticket->getKey());
             $actor->can('updateStatus', $ticket) || abort(403);
 
@@ -32,8 +38,14 @@ class TicketWorkflowService
             if (! in_array($target->value, self::TRANSITIONS[$current] ?? [], true)) {
                 throw ValidationException::withMessages(['status' => "Cannot transition from {$current} to {$target->value}."]);
             }
+            if ($target === TicketStatusSlug::Resolved && trim((string) $resolution) === '') {
+                throw ValidationException::withMessages(['resolution' => 'Add the solution before resolving this ticket.']);
+            }
 
             $ticket->status_id = TicketStatus::forSlug($target)->getKey();
+            if ($target === TicketStatusSlug::Resolved) {
+                $ticket->resolution = trim((string) $resolution);
+            }
             if ($target === TicketStatusSlug::Resolved && $current !== TicketStatusSlug::Closed->value) {
                 $ticket->resolved_at = now();
             } elseif (! in_array($target, [TicketStatusSlug::Resolved, TicketStatusSlug::Closed], true)) {

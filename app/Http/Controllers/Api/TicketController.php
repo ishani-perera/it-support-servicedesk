@@ -72,7 +72,8 @@ class TicketController extends Controller
 
     public function status(UpdateTicketStatusRequest $request, Ticket $ticket, TicketWorkflowService $workflow): TicketResource
     {
-        $workflow->transition($ticket, TicketStatusSlug::from($request->validated('status')), $request->user());
+        $validated = $request->validated();
+        $workflow->transition($ticket, TicketStatusSlug::from($validated['status']), $request->user(), $validated['resolution'] ?? null);
         $ticket->refresh()->load(['user', 'department', 'category', 'priority', 'status', 'currentAssignment.assignee']);
 
         return new TicketResource($ticket);

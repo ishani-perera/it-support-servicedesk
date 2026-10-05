@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Phase 03 authorization boundary (see TicketController): the ONLY way to read
+ * The only way to read
  * an attachment's bytes. Files live on the private `local` disk (never under
  * /public), so there is no guessable URL that bypasses this check.
  * Uploads use the private disk after request and policy authorization.

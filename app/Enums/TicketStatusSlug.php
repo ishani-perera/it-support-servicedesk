@@ -13,8 +13,8 @@ namespace App\Enums;
  *
  * (Named "...Slug" to avoid clashing with the App\Models\TicketStatus model.)
  *
- * Workflow/transition rules are intentionally NOT defined here yet — that
- * belongs to a later phase.
+ * Transition rules live in TicketWorkflowService so enum values remain
+ * stable identifiers rather than the workflow engine.
  */
 enum TicketStatusSlug: string
 {

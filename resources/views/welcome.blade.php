@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ config('app.name') }}</title>
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex items-center justify-center">
-        {{-- Placeholder only: confirms Blade + Tailwind + Vite are wired. Real UI arrives in a later phase. --}}
-        <main class="text-center">
-            <h1 class="text-3xl font-semibold tracking-tight">{{ config('app.name') }}</h1>
-            <p class="mt-2 text-sm text-slate-500">Foundation ready.</p>
-        </main>
-    </body>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#1d1e3e">
+    <title>{{ config('app.name') }}</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-[#191a36] px-4 py-10 text-white antialiased sm:px-8">
+    <span class="pointer-events-none absolute -left-40 -top-48 -z-10 size-[36rem] rounded-full bg-indigo-500/20 blur-[120px]" aria-hidden="true"></span><span class="pointer-events-none absolute -bottom-52 -right-40 -z-10 size-[42rem] rounded-full bg-violet-500/15 blur-[130px]" aria-hidden="true"></span>
+    <main class="w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#24254b] via-[#222343] to-[#2b2850] shadow-[0_35px_100px_rgb(5_6_24/0.5)]">
+        <header class="flex items-center justify-between border-b border-white/[.08] px-5 py-4 sm:px-8"><a href="/" class="flex items-center gap-3"><span class="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-300 to-violet-400 text-xs font-black text-[#242448] shadow-lg shadow-slate-950/20">SD</span><span><span class="block text-sm font-bold tracking-wide">{{ config('app.name') }}</span><span class="mt-0.5 block text-[10px] font-semibold uppercase tracking-[.16em] text-indigo-100/55">IT Service portal</span></span></a><span class="hidden items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/[.07] px-3 py-1.5 text-[11px] font-semibold text-emerald-100/80 sm:inline-flex"><span class="size-1.5 rounded-full bg-emerald-300"></span>Support workspace</span></header>
+        <div class="grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1fr_.78fr] lg:gap-14 lg:px-16 lg:py-20">
+            <section><p class="inline-flex items-center gap-2 rounded-full border border-violet-200/15 bg-violet-200/[.07] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-violet-100"><span class="size-1.5 rounded-full bg-violet-300"></span>People-first IT support</p><h1 class="mt-5 max-w-2xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.75rem]">IT support, all in one place.</h1><p class="mt-5 max-w-xl text-base leading-7 text-indigo-100/70">How can we help? Report an issue, follow the next steps, and keep every reply and attachment together from first contact to resolution.</p><div class="mt-8 flex flex-col gap-3 sm:flex-row">@auth<a href="{{ route('home') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-indigo-800 shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-violet-50">Go to your workspace <span aria-hidden="true">→</span></a>@else<a href="{{ route('login') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-indigo-800 shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-violet-50">Sign in to ServiceDesk <span aria-hidden="true">→</span></a>@endauth</div><div class="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-indigo-100/65"><span class="inline-flex items-center gap-2"><span class="text-emerald-300">✓</span>Track every request</span><span class="inline-flex items-center gap-2"><span class="text-emerald-300">✓</span>Keep updates in context</span><span class="inline-flex items-center gap-2"><span class="text-emerald-300">✓</span>Share files securely</span></div></section>
+            <aside class="relative rounded-3xl border border-white/10 bg-white/[.055] p-5 shadow-2xl shadow-slate-950/15 backdrop-blur sm:p-6"><div class="flex items-center justify-between gap-4"><div><p class="text-[10px] font-bold uppercase tracking-[.15em] text-indigo-200/60">A clear path to resolution</p><h2 class="mt-1 text-lg font-bold text-white">Ticket workflow</h2></div><span class="grid size-10 place-items-center rounded-xl bg-violet-300/10 text-violet-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14 M13 6l6 6-6 6" /></svg></span></div><ol class="mt-6 space-y-2">@foreach (\App\Enums\TicketStatusSlug::cases() as $status)<li class="flex items-center gap-3 rounded-xl border border-white/[.07] bg-slate-950/10 p-2.5"><span class="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-indigo-400/20 to-violet-400/20 font-mono text-[10px] font-bold text-violet-100">{{ str_pad((string) $status->sortOrder(), 2, '0', STR_PAD_LEFT) }}</span><span class="min-w-0"><span class="block text-xs font-semibold text-white">{{ $status->label() }}</span><span class="mt-0.5 block text-[11px] leading-4 text-indigo-100/55">{{ $status->description() }}</span></span><span class="ml-auto size-1.5 shrink-0 rounded-full bg-violet-300/70"></span></li>@endforeach</ol><p class="mt-4 px-1 text-[11px] leading-5 text-indigo-100/45">For employees, IT Support, and administrators.</p></aside>
+        </div>
+    </main>
+</body>
 </html>

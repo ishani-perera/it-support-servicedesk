@@ -37,7 +37,7 @@ use Illuminate\View\View;
  */
 class TicketController extends Controller
 {
-    public function index(Request $request, TicketQueryService $tickets): JsonResponse|View
+    public function index(Request $request, TicketQueryService $tickets, TicketWorkflowService $workflow): JsonResponse|View
     {
         $this->authorize('viewAny', Ticket::class);
         $filters = $request->validate([
@@ -61,15 +61,31 @@ class TicketController extends Controller
             ]);
         }
         if ($request->user()->isSupport() && ! $request->expectsJson()) {
+            $board = $tickets->supportBoard($request->user(), $filters);
+            $transitionOptions = collect($board)->flatten()->mapWithKeys(fn (Ticket $ticket) => [
+                $ticket->id => $workflow->availableTransitions(TicketStatusSlug::from($ticket->status->slug)),
+            ]);
+
             return view('support.tickets.index', [
                 'tickets' => $page,
                 'statuses' => TicketStatus::query()->active()->ordered()->get(),
                 'priorities' => TicketPriority::query()->active()->ordered()->get(),
                 'categories' => TicketCategory::query()->active()->orderBy('name')->get(),
                 'filters' => $filters,
-                'board' => $tickets->supportBoard($request->user(), $filters),
+                'board' => $board,
+                'transitionOptions' => $transitionOptions,
                 'assignees' => User::active()->staff()->orderBy('name')->get(),
                 'mode' => $request->query('view') === 'table' ? 'table' : 'board',
+            ]);
+        }
+
+        if ($request->user()->isAdmin() && ! $request->expectsJson()) {
+            return view('admin.tickets.index', [
+                'tickets' => $page,
+                'statuses' => TicketStatus::query()->active()->ordered()->get(),
+                'priorities' => TicketPriority::query()->active()->ordered()->get(),
+                'categories' => TicketCategory::query()->active()->orderBy('name')->get(),
+                'filters' => $filters,
             ]);
         }
 
@@ -129,7 +145,8 @@ class TicketController extends Controller
 
     public function status(UpdateTicketStatusRequest $request, Ticket $ticket, TicketWorkflowService $workflow): JsonResponse|RedirectResponse
     {
-        $workflow->transition($ticket, TicketStatusSlug::from($request->validated('status')), $request->user());
+        $validated = $request->validated();
+        $workflow->transition($ticket, TicketStatusSlug::from($validated['status']), $request->user(), $validated['resolution'] ?? null);
 
         if ($request->input('_html_form') === '1') {
             return back()->with('status', 'Ticket status updated.');
@@ -161,7 +178,7 @@ class TicketController extends Controller
         return response()->json(['data' => ['id' => $ticket->id, 'current_assignment' => null]]);
     }
 
-    public function show(Request $request, Ticket $ticket, TicketSlaService $slaService): JsonResponse|View
+    public function show(Request $request, Ticket $ticket, TicketSlaService $slaService, TicketWorkflowService $workflow): JsonResponse|View
     {
         $this->authorize('view', $ticket);
 
@@ -174,16 +191,16 @@ class TicketController extends Controller
             return view('employee.tickets.show', compact('ticket', 'comments', 'attachments', 'sla'));
         }
 
-        if ($request->user()->isSupport() && ! $request->expectsJson()) {
+        if (($request->user()->isSupport() || $request->user()->isAdmin()) && ! $request->expectsJson()) {
             [$comments, $attachments] = $this->conversation($ticket, $request->user());
             $sla = $slaService->evaluate($ticket);
             $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
             $assignments->each(fn ($item) => $item->setRelation('ticket', $ticket));
             $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
-            $statuses = TicketStatus::query()->active()->ordered()->get();
+            $nextStatuses = $workflow->availableTransitions(TicketStatusSlug::from($ticket->status->slug));
             $assignees = User::active()->staff()->orderBy('name')->get();
 
-            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'statuses', 'assignees', 'sla'));
+            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'nextStatuses', 'assignees', 'sla'));
         }
 
         $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();
