@@ -18,12 +18,12 @@ class UserIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => ['sometimes', 'string', 'max:120'],
-            'role' => ['sometimes', Rule::enum(UserRole::class)],
-            'department_id' => ['sometimes', 'integer', 'exists:departments,id'],
-            'active' => ['sometimes', Rule::in(['active', 'inactive'])],
-            'sort' => ['sometimes', Rule::in(['name', 'email', 'role', 'created_at'])],
-            'direction' => ['sometimes', Rule::in(['asc', 'desc'])],
+            'search' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'role' => ['sometimes', 'nullable', Rule::enum(UserRole::class)],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'active' => ['sometimes', 'nullable', Rule::in(['active', 'inactive'])],
+            'sort' => ['sometimes', 'nullable', Rule::in(['name', 'email', 'role', 'created_at'])],
+            'direction' => ['sometimes', 'nullable', Rule::in(['asc', 'desc'])],
         ];
     }
 }
