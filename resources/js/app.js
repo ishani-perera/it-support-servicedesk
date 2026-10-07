@@ -181,15 +181,17 @@ document.querySelectorAll('[data-async-workflow-form]').forEach((form) => {
         if (form.dataset.submitting === 'true') return;
         clearErrors();
 
-        const trimRequired = form.querySelector('[data-trim-required]');
-        if (trimRequired && trimRequired.value.trim() === '') {
-            const error = form.querySelector(`[data-field-error="${trimRequired.name}"]`);
+        const blankRequired = Array.from(form.querySelectorAll('[data-trim-required]'))
+            .find((field) => field.value.trim() === '');
+        if (blankRequired) {
+            const error = Array.from(form.querySelectorAll('[data-field-error]'))
+                .find((node) => node.dataset.fieldError === blankRequired.name);
             if (error) {
-                error.textContent = 'Please provide a reason.';
+                error.textContent = 'This field is required.';
                 error.classList.remove('hidden');
             }
-            trimRequired.setAttribute('aria-invalid', 'true');
-            trimRequired.focus();
+            blankRequired.setAttribute('aria-invalid', 'true');
+            blankRequired.focus();
             return;
         }
 

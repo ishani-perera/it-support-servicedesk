@@ -61,6 +61,9 @@ class TicketController extends Controller
                 'filters' => $filters,
             ]);
         }
+        if ($request->user()->isTechnician() && ! $request->expectsJson()) {
+            return app(TechnicianDashboardController::class)->index($request);
+        }
         if ($request->user()->isSupport() && ! $request->expectsJson()) {
             $board = $tickets->supportBoard($request->user(), $filters);
             $transitionOptions = collect($board)->flatten()->mapWithKeys(fn (Ticket $ticket) => [
@@ -190,6 +193,21 @@ class TicketController extends Controller
             $sla = $slaService->evaluate($ticket);
 
             return view('employee.tickets.show', compact('ticket', 'comments', 'attachments', 'sla'));
+        }
+
+        if ($request->user()->isTechnician() && ! $request->expectsJson()) {
+            [$comments, $attachments] = $this->conversation($ticket, $request->user());
+            $sla = $slaService->evaluate($ticket);
+            $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
+            $assignments->each(fn ($item) => $item->setRelation('ticket', $ticket));
+            $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
+            $workReports = $technicianWorkflow->reportsVisibleTo($ticket, $request->user());
+            $latestReport = $workReports->first();
+            $technicianInformationRequest = $ticket->status->slug === TicketStatusSlug::WaitingForUser->value
+                ? $comments->last(fn ($comment) => ! $comment->is_internal && $comment->user->isTechnician())
+                : null;
+
+            return view('technician.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'workReports', 'latestReport', 'technicianInformationRequest', 'sla'));
         }
 
         if (($request->user()->isSupport() || $request->user()->isAdmin()) && ! $request->expectsJson()) {

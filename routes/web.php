@@ -14,6 +14,7 @@ use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SupportDashboardController;
+use App\Http\Controllers\TechnicianDashboardController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketCommentController;
 use App\Http\Controllers\TicketController;
@@ -66,6 +67,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         return match (true) {
             $request->user()->isEmployee() => app(EmployeeDashboardController::class)($request),
             $request->user()->isSupport() => app(SupportDashboardController::class)($request, app(TicketQueryService::class)),
+            $request->user()->isTechnician() => redirect()->route('technician.dashboard'),
             default => redirect()->route('admin.dashboard'),
         };
     })->name('home');
@@ -77,6 +79,11 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware('role:employee')->group(function () {
         Route::get('dashboard', EmployeeDashboardController::class)->name('employee.dashboard');
         Route::get('tickets/create', [TicketController::class, 'create'])->name('tickets.create');
+    });
+
+    Route::middleware('role:technician')->prefix('technician')->name('technician.')->group(function () {
+        Route::get('dashboard', [TechnicianDashboardController::class, 'index'])->name('dashboard');
+        Route::get('tickets', [TechnicianDashboardController::class, 'index'])->name('tickets.index');
     });
 
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
