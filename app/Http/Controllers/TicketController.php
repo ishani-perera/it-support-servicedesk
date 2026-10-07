@@ -200,8 +200,13 @@ class TicketController extends Controller
             $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
             $nextStatuses = $workflow->availableTransitions(TicketStatusSlug::from($ticket->status->slug));
             $assignees = User::active()->staff()->orderBy('name')->get();
+            $technicians = User::active()->technicians()->with('department')->orderBy('name')->get();
+            $workReports = $technicianWorkflow->reportsVisibleTo($ticket, $request->user());
+            $technicianInformationRequest = $ticket->status->slug === TicketStatusSlug::WaitingForUser->value
+                ? $comments->last(fn ($comment) => ! $comment->is_internal && $comment->user->isTechnician())
+                : null;
 
-            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'nextStatuses', 'assignees', 'sla'));
+            return view('support.tickets.show', compact('ticket', 'comments', 'attachments', 'assignments', 'nextStatuses', 'assignees', 'technicians', 'workReports', 'technicianInformationRequest', 'sla'));
         }
 
         $comments = $ticket->comments()->visibleTo($request->user())->with('user')->oldest()->get();

@@ -7,6 +7,7 @@ use App\Enums\TicketStatusSlug;
 use App\Models\TicketCategory;
 use App\Models\TicketPriority;
 use App\Models\TicketStatus;
+use App\Models\User;
 use App\Services\TicketQueryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsAuthScenario;
@@ -62,13 +63,32 @@ class SupportDashboardTest extends TestCase
 
     public function test_support_can_open_authorized_details_and_cannot_use_idor(): void
     {
-        $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketA->id)->assertOk()
+        $this->actAs($this->supportOne)->get('/tickets/'.$this->ticketA->id)->assertOk()
             ->assertSee($this->ticketA->title)->assertSee('Assignment history');
         $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketB->id)->assertOk()->assertSee($this->ticketB->title);
         $this->actingAs($this->supportOne)->getJson('/tickets/'.$this->ticketB->id)->assertOk()
             ->assertJsonPath('data.ticket_number', $this->ticketB->ticket_number)
             ->assertJsonFragment(['body' => $this->internalB->body]);
         $this->actingAs($this->employeeA)->get('/tickets/'.$this->ticketB->id)->assertForbidden();
+    }
+
+    public function test_support_detail_offers_technician_assignment_and_employee_detail_does_not(): void
+    {
+        $technician = User::factory()->technician()->create();
+        $inactiveTechnician = User::factory()->technician()->inactive()->create();
+
+        $this->actingAs($this->supportOne)->get('/tickets/'.$this->ticketA->id)->assertOk()
+            ->assertSee('Technician assignment')
+            ->assertSee('Assign Technician')
+            ->assertSee($technician->name)
+            ->assertDontSee($inactiveTechnician->name)
+            ->assertSee(route('tickets.technician-assignment.store', $this->ticketA), false)
+            ->assertSee('Assignment history');
+
+        $this->actAs($this->employeeA)->get('/tickets/'.$this->ticketA->id)->assertOk()
+            ->assertDontSee('Technician assignment')
+            ->assertDontSee('Assign Technician')
+            ->assertDontSee('tickets.technician-assignment.store');
     }
 
     public function test_status_changes_use_existing_workflow_and_reject_invalid_or_unauthorized_transitions(): void

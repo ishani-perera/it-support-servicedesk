@@ -8,6 +8,15 @@ enum TechnicianWorkReviewStatus: string
     case Approved = 'approved';
     case ChangesRequested = 'changes_requested';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::Pending => 'Awaiting IT Support Review',
+            self::Approved => 'Approved',
+            self::ChangesRequested => 'Changes requested',
+        };
+    }
+
     /**
      * @return list<string>
      */

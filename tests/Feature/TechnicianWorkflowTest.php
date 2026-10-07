@@ -157,6 +157,24 @@ class TechnicianWorkflowTest extends TestCase
         $this->assertNotificationCount($this->admin, 'Technician work ready for review', 0);
         $this->assertNotificationCount($this->employee, 'Technician work ready for review', 0);
 
+        $this->actAsFresh($this->support)->get('/tickets/'.$this->ticket->id)->assertOk()
+            ->assertSee('Technician work')
+            ->assertSee('IT Support review')
+            ->assertSee('Replaced and configured the router.')
+            ->assertSee('The original router power supply had failed.')
+            ->assertSee('Connectivity was verified from the employee workstation.')
+            ->assertSee('Approve and close ticket')
+            ->assertSee('Send back to Technician')
+            ->assertSee('Revision reason')
+            ->assertSee('data-trim-required', false)
+            ->assertSee('data-async-workflow-form', false);
+        $this->actAsFresh($this->employee)->get('/tickets/'.$this->ticket->id)->assertOk()
+            ->assertDontSee('Technician work')
+            ->assertDontSee('Replaced and configured the router.')
+            ->assertDontSee('The original router power supply had failed.')
+            ->assertDontSee('Connectivity was verified from the employee workstation.')
+            ->assertDontSee('Internal progress note');
+
         $this->actingAs($this->technician)->postJson('/api/tickets/'.$this->ticket->id.'/work/approve')->assertForbidden();
         $this->actingAs($this->technician)->patchJson('/api/tickets/'.$this->ticket->id.'/status', [
             'status' => TicketStatusSlug::Closed->value,
@@ -323,5 +341,13 @@ class TechnicianWorkflowTest extends TestCase
     private function assertNotificationCount(User $user, string $title, int $expected): void
     {
         $this->assertSame($expected, $user->notifications()->where('data->title', $title)->count(), $title.' notification count for '.$user->name);
+    }
+
+    private function actAsFresh(User $user): static
+    {
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+
+        return $this->actingAs($user, 'web');
     }
 }
