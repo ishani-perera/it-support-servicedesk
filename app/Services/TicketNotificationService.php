@@ -17,7 +17,30 @@ class TicketNotificationService
 
     public function assignmentChanged(Ticket $ticket, User $actor, User $assignee, ?User $previousAssignee = null): void
     {
-        $this->send($ticket, $actor, collect([$assignee]), 'Ticket assigned to you', 'A ticket has been assigned to you.');
+        if ($assignee->isTechnician()) {
+            $this->send(
+                $ticket,
+                $actor,
+                collect([$assignee]),
+                'Ticket assigned to you',
+                $actor->name.' assigned this ticket to you for investigation.',
+                ['assigned_by' => $actor->name],
+            );
+            $supportRecipients = User::query()->active()->supportAgents()->get();
+            if ($previousAssignee) {
+                $supportRecipients = $supportRecipients->reject(fn (User $recipient): bool => $recipient->is($previousAssignee));
+            }
+            $this->send(
+                $ticket,
+                $actor,
+                $supportRecipients,
+                'Technician assigned',
+                $actor->name.' assigned '.$assignee->name.' to this ticket.',
+                ['assigned_to' => $assignee->name, 'assigned_by' => $actor->name],
+            );
+        } else {
+            $this->send($ticket, $actor, collect([$assignee]), 'Ticket assigned to you', 'A ticket has been assigned to you.');
+        }
 
         if ($previousAssignee && $previousAssignee->isNot($assignee)) {
             $this->send($ticket, $actor, collect([$previousAssignee]), 'Ticket reassigned', 'A ticket has been reassigned to another support agent.');
@@ -63,22 +86,78 @@ class TicketNotificationService
     public function informationRequested(Ticket $ticket, User $technician): void
     {
         $ticket->loadMissing('user');
-        $this->send($ticket, $technician, collect([$ticket->user]), 'More information needed', 'The Technician requested additional information on your ticket.');
+        $this->send($ticket, $technician, collect([$ticket->user]), 'Action required: more information needed', 'The Technician needs information from you to continue work on this ticket.');
+    }
+
+    public function technicianStartedWork(Ticket $ticket, User $technician): void
+    {
+        $this->send(
+            $ticket,
+            $technician,
+            User::query()->active()->supportAgents()->get(),
+            'Technician started work',
+            $technician->name.' started work on this ticket.',
+            ['technician' => $technician->name],
+        );
+    }
+
+    public function internalCommentAdded(Ticket $ticket, User $actor): void
+    {
+        $ticket->loadMissing('currentAssignment.assignee');
+        $technician = $ticket->currentAssignment?->assignee;
+
+        if ($actor->isTechnician()) {
+            $this->send(
+                $ticket,
+                $actor,
+                User::query()->active()->supportAgents()->get(),
+                'Technician added an internal note',
+                $actor->name.' added an internal note for IT Support.',
+                ['technician' => $actor->name],
+            );
+
+            return;
+        }
+
+        if ($technician?->isTechnician()) {
+            $this->send(
+                $ticket,
+                $actor,
+                collect([$technician]),
+                'IT Support added an internal note',
+                'IT Support added an internal note for the Technician.',
+            );
+        }
     }
 
     public function workSubmittedForReview(Ticket $ticket, User $technician): void
     {
-        $this->send($ticket, $technician, User::query()->active()->staff()->get(), 'Technician work ready for review', 'Completed technician work is waiting for IT Support review.');
+        $this->send(
+            $ticket,
+            $technician,
+            User::query()->active()->supportAgents()->get(),
+            'Technician work ready for review',
+            'Completed Technician work is waiting for IT Support review.',
+            ['technician' => $technician->name],
+        );
     }
 
-    public function workSentBack(Ticket $ticket, User $reviewer): void
+    public function workSentBack(Ticket $ticket, User $reviewer, ?string $reviewReason): void
     {
         $ticket->loadMissing('currentAssignment.assignee');
-        $this->send($ticket, $reviewer, collect([$ticket->currentAssignment?->assignee]), 'Work needs changes', 'IT Support returned your work report with a review note.');
+        $reason = trim((string) $reviewReason);
+        $this->send(
+            $ticket,
+            $reviewer,
+            collect([$ticket->currentAssignment?->assignee]),
+            'Work needs changes',
+            'IT Support returned your work report for revision. Review reason: '.$reason,
+            ['reviewed_by' => $reviewer->name, 'review_reason' => $reason],
+        );
     }
 
     /** @param iterable<User|null> $recipients */
-    private function send(Ticket $ticket, User $actor, iterable $recipients, string $title, string $message): void
+    private function send(Ticket $ticket, User $actor, iterable $recipients, string $title, string $message, array $context = []): void
     {
         $sent = [];
         foreach ($recipients as $recipient) {
@@ -92,7 +171,14 @@ class TicketNotificationService
             }
 
             $sent[$id] = true;
-            $recipient->notify(new TicketEventNotification($title, $message, (int) $ticket->getKey(), $ticket->ticket_number));
+            $recipient->notify(new TicketEventNotification(
+                $title,
+                $message,
+                (int) $ticket->getKey(),
+                $ticket->ticket_number,
+                $ticket->title,
+                $context,
+            ));
         }
     }
 }

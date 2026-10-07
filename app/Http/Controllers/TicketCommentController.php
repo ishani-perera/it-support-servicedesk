@@ -31,6 +31,8 @@ class TicketCommentController extends Controller
                     $workflow->resumeForRequesterReply($ticket, $request->user());
                 }
                 $notifications->publicCommentAdded($ticket, $request->user());
+            } else {
+                $notifications->internalCommentAdded($ticket, $request->user());
             }
 
             return $comment;

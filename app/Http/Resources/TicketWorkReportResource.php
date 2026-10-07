@@ -9,6 +9,10 @@ class TicketWorkReportResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        if (! $request->user()?->can('view', $this->resource)) {
+            return [];
+        }
+
         return [
             'id' => $this->id,
             'assignment' => [

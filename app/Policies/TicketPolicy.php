@@ -97,7 +97,7 @@ class TicketPolicy
     {
         return match (true) {
             $user->isAdmin() => true,
-            $user->isSupport() => $this->inSupportScope($user, $ticket),
+            $user->isSupport() => $this->inSupportScope($user, $ticket) || $this->assignedToTechnician($ticket),
             $user->isEmployee() => $this->isRequester($user, $ticket),
             $user->isTechnician() => $this->isAssignedTo($user, $ticket),
             default => false,

@@ -32,9 +32,23 @@ class TicketResource extends JsonResource
             $data['sla'] = app(TicketSlaService::class)->evaluate($this->resource);
         }
 
-        $data['comments'] = TicketCommentResource::collection($this->whenLoaded('comments'));
-        $data['attachments'] = TicketAttachmentResource::collection($this->whenLoaded('attachments'));
-        $data['work_reports'] = TicketWorkReportResource::collection($this->whenLoaded('workReports'));
+        $data['comments'] = TicketCommentResource::collection($this->whenLoaded('comments', function ($comments) use ($request) {
+            return $comments->filter(function ($comment) use ($request): bool {
+                $comment->setRelation('ticket', $this->resource);
+
+                return $request->user()?->can('view', $comment) ?? false;
+            })->values();
+        }));
+        $data['attachments'] = TicketAttachmentResource::collection($this->whenLoaded('attachments', function ($attachments) use ($request) {
+            return $attachments->filter(function ($attachment) use ($request): bool {
+                $attachment->setRelation('ticket', $this->resource);
+
+                return $request->user()?->can('view', $attachment) ?? false;
+            })->values();
+        }));
+        $data['work_reports'] = TicketWorkReportResource::collection($this->whenLoaded('workReports', function ($reports) use ($request) {
+            return $reports->filter(fn ($report): bool => $request->user()?->can('view', $report) ?? false)->values();
+        }));
 
         return $data;
     }

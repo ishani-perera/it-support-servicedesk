@@ -11,6 +11,8 @@ class TicketEventNotification extends Notification
         public readonly string $message,
         public readonly int $ticketId,
         public readonly string $ticketNumber,
+        public readonly ?string $ticketTitle = null,
+        public readonly array $context = [],
     ) {}
 
     /** @return list<string> */
@@ -19,14 +21,16 @@ class TicketEventNotification extends Notification
         return ['database'];
     }
 
-    /** @return array<string, int|string> */
+    /** @return array<string, mixed> */
     public function toDatabase(object $notifiable): array
     {
-        return [
+        return array_filter([
             'title' => $this->title,
             'message' => $this->message,
             'ticket_id' => $this->ticketId,
             'ticket_number' => $this->ticketNumber,
-        ];
+            'ticket_title' => $this->ticketTitle,
+            'context' => $this->context === [] ? null : $this->context,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 }

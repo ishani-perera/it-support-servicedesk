@@ -45,6 +45,8 @@ class TechnicianWorkflowService
                 $this->workflow->transitionForTechnician($ticket, TicketStatusSlug::InProgress, $technician);
             }
 
+            $this->notifications->technicianStartedWork($ticket, $technician);
+
             return $report->load(['assignment.assignee', 'assignment.assigner', 'startedBy', 'reviewer']);
         });
     }
@@ -142,7 +144,7 @@ class TechnicianWorkflowService
                 $this->workflow->transitionAfterTechnicianReview($ticket, TicketStatusSlug::Closed, $reviewer);
             } else {
                 $this->workflow->transitionAfterTechnicianReview($ticket, TicketStatusSlug::InProgress, $reviewer);
-                $this->notifications->workSentBack($ticket, $reviewer);
+                $this->notifications->workSentBack($ticket, $reviewer, $report->review_note);
             }
 
             return $report->load(['assignment.assignee', 'assignment.assigner', 'startedBy', 'reviewer']);
