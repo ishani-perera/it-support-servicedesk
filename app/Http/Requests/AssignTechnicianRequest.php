@@ -16,10 +16,6 @@ class AssignTechnicianRequest extends FormRequest
 
     public function rules(): array
     {
-        $ticket = $this->route('ticket');
-        $currentAssignment = $ticket?->currentAssignment()->with('assignee')->first();
-        $isTechnicianHandoff = $currentAssignment?->assignee?->isTechnician() ?? false;
-
         return [
             'assigned_to' => [
                 'required',

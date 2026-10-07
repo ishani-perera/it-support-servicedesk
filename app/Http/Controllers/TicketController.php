@@ -41,6 +41,10 @@ class TicketController extends Controller
     public function index(Request $request, TicketQueryService $tickets, TicketWorkflowService $workflow): JsonResponse|View
     {
         $this->authorize('viewAny', Ticket::class);
+        if ($request->user()->isTechnician() && ! $request->expectsJson()) {
+            return app(TechnicianDashboardController::class)->index($request);
+        }
+
         $filters = $request->validate([
             'status' => ['sometimes', 'nullable', 'string', Rule::in(TicketStatusSlug::values())], 'priority_id' => ['sometimes', 'nullable', 'integer', 'exists:ticket_priorities,id'],
             'category_id' => ['sometimes', 'nullable', 'integer', 'exists:ticket_categories,id'], 'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
@@ -60,9 +64,6 @@ class TicketController extends Controller
                 'categories' => TicketCategory::query()->active()->orderBy('name')->get(),
                 'filters' => $filters,
             ]);
-        }
-        if ($request->user()->isTechnician() && ! $request->expectsJson()) {
-            return app(TechnicianDashboardController::class)->index($request);
         }
         if ($request->user()->isSupport() && ! $request->expectsJson()) {
             $board = $tickets->supportBoard($request->user(), $filters);

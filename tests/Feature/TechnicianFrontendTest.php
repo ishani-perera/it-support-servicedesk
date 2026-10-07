@@ -160,6 +160,8 @@ class TechnicianFrontendTest extends TestCase
             ->assertDontSee('Approve and close ticket');
         $this->actingAs($this->technician)->get('/technician/tickets?status=sent_back')->assertOk()
             ->assertSee($this->ticket->ticket_number);
+        $this->actingAs($this->technician)->get('/tickets?status=sent_back')->assertOk()
+            ->assertSee($this->ticket->ticket_number);
         $this->actingAs($this->technician)->postJson('/tickets/'.$this->ticket->id.'/work/start')->assertCreated();
         $this->assertSame(2, $this->ticket->workReports()->count());
         $this->assertSame(TicketStatusSlug::InProgress->value, $this->ticket->fresh()->status->slug);
