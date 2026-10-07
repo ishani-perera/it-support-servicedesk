@@ -96,7 +96,7 @@ class UpdateUserRequest extends FormRequest
                 $departmentId = Department::query()->active()->orderBy('id')->value('id');
             }
             if (! $departmentId || ! Department::query()->active()->whereKey($departmentId)->exists()) {
-                $validator->errors()->add('department_id', 'Employees and IT Support users need an active department.');
+                $validator->errors()->add('department_id', 'Employees, IT Support users, and Technicians need an active department.');
             }
         });
     }

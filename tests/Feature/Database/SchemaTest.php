@@ -20,7 +20,7 @@ class SchemaTest extends TestCase
         foreach ([
             'users', 'departments', 'tickets', 'ticket_categories', 'ticket_comments',
             'ticket_attachments', 'ticket_statuses', 'ticket_priorities',
-            'ticket_assignments', 'notifications', 'personal_access_tokens',
+            'ticket_assignments', 'ticket_work_reports', 'notifications', 'personal_access_tokens',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Missing table [{$table}]");
         }
@@ -38,6 +38,7 @@ class SchemaTest extends TestCase
             'ticket_comments' => ['id', 'ticket_id', 'user_id', 'body', 'is_internal', 'created_at', 'updated_at'],
             'ticket_attachments' => ['id', 'ticket_id', 'comment_id', 'uploaded_by', 'original_name', 'file_name', 'file_path', 'mime_type', 'file_size', 'created_at', 'updated_at'],
             'ticket_assignments' => ['id', 'ticket_id', 'assigned_to', 'assigned_by', 'assigned_at', 'unassigned_at', 'note', 'created_at', 'updated_at'],
+            'ticket_work_reports' => ['id', 'ticket_assignment_id', 'started_by', 'work_started_at', 'work_completed_at', 'work_summary', 'root_cause', 'technician_notes', 'review_status', 'reviewed_by', 'reviewed_at', 'review_note', 'created_at', 'updated_at'],
             'notifications' => ['id', 'type', 'notifiable_type', 'notifiable_id', 'data', 'read_at', 'created_at', 'updated_at'],
         ];
 
@@ -72,6 +73,9 @@ class SchemaTest extends TestCase
             'ticket_assignments.ticket_id' => ['tickets', 'CASCADE'],
             'ticket_assignments.assigned_to' => ['users', 'RESTRICT'],
             'ticket_assignments.assigned_by' => ['users', 'RESTRICT'],
+            'ticket_work_reports.ticket_assignment_id' => ['ticket_assignments', 'CASCADE'],
+            'ticket_work_reports.started_by' => ['users', 'RESTRICT'],
+            'ticket_work_reports.reviewed_by' => ['users', 'RESTRICT'],
         ];
 
         $rows = DB::select(
@@ -102,6 +106,7 @@ class SchemaTest extends TestCase
             'ticket_comments' => ['ticket_id', 'user_id'],
             'ticket_attachments' => ['ticket_id', 'comment_id', 'uploaded_by'],
             'ticket_assignments' => ['ticket_id', 'assigned_to', 'assigned_by'],
+            'ticket_work_reports' => ['ticket_assignment_id', 'started_by', 'reviewed_by'],
         ];
 
         foreach ($expected as $table => $columns) {
@@ -144,7 +149,7 @@ class SchemaTest extends TestCase
         foreach (['users', 'departments', 'ticket_categories', 'ticket_priorities'] as $table) {
             $this->assertTrue(Schema::hasColumn($table, 'deleted_at'), "[{$table}] should soft delete");
         }
-        foreach (['tickets', 'ticket_comments', 'ticket_attachments', 'ticket_assignments', 'ticket_statuses', 'notifications'] as $table) {
+        foreach (['tickets', 'ticket_comments', 'ticket_attachments', 'ticket_assignments', 'ticket_work_reports', 'ticket_statuses', 'notifications'] as $table) {
             $this->assertFalse(Schema::hasColumn($table, 'deleted_at'), "[{$table}] must not soft delete");
         }
     }

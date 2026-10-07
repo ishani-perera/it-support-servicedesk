@@ -140,7 +140,7 @@ class RoleMiddlewareTest extends TestCase
 
     public function test_role_names_come_only_from_the_enum(): void
     {
-        $this->assertSame(['employee', 'support', 'admin'], UserRole::values());
+        $this->assertSame(['employee', 'support', 'admin', 'technician'], UserRole::values());
 
         // No source file outside the enum / seeders / factories / tests hard-codes a role string comparison.
         foreach (['app/Http', 'app/Policies', 'app/Models'] as $dir) {

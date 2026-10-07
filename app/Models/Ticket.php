@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Ticket extends Model
@@ -181,6 +182,7 @@ class Ticket extends Model
      *  - employee: tickets they requested
      *  - support:  all tickets (view access is shared across the support team)
      *  - admin:    everything
+     *  - technician: no ticket page access until its workflow is implemented
      *  - inactive users: nothing
      *
      * @param  Builder<Ticket>  $query
@@ -196,7 +198,8 @@ class Ticket extends Model
         match (true) {
             $user->isAdmin() => null,
             $user->isSupport() => null,
-            default => $query->createdBy($user),
+            $user->isEmployee() => $query->createdBy($user),
+            default => $query->whereRaw('1 = 0'),
         };
     }
 
@@ -292,6 +295,16 @@ class Ticket extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(TicketAssignment::class);
+    }
+
+    /**
+     * Work reports recorded against assignment history for this ticket.
+     *
+     * @return HasManyThrough<TicketWorkReport, TicketAssignment, $this>
+     */
+    public function workReports(): HasManyThrough
+    {
+        return $this->hasManyThrough(TicketWorkReport::class, TicketAssignment::class);
     }
 
     /**

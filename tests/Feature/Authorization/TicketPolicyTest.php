@@ -85,6 +85,15 @@ class TicketPolicyTest extends TestCase
         }
     }
 
+    public function test_technician_ticket_access_remains_denied_until_a_workflow_is_added(): void
+    {
+        $technician = User::factory()->technician()->create();
+
+        $this->assertFalse(Gate::forUser($technician)->allows('create', Ticket::class));
+        $this->assertSame([], Ticket::query()->visibleTo($technician)->pluck('id')->all());
+        $this->assertFalse($this->allows($technician, 'view', $this->ticketA));
+    }
+
     public function test_deactivated_users_are_denied_every_ability_even_admins(): void
     {
         $inactiveAdmin = User::factory()->admin()->inactive()->create();
@@ -158,7 +167,8 @@ class TicketPolicyTest extends TestCase
         $this->makeAssignment($this->makeTicket($this->employeeB), $this->supportOne, $this->admin);
         $inactive = User::factory()->admin()->inactive()->create();
 
-        $users = [$this->employeeA, $this->employeeB, $this->supportOne, $this->supportTwo, $this->admin, $inactive];
+        $technician = User::factory()->technician()->create();
+        $users = [$this->employeeA, $this->employeeB, $this->supportOne, $this->supportTwo, $this->admin, $technician, $inactive];
 
         foreach ($users as $user) {
             $visible = Ticket::query()->visibleTo($user)->pluck('id')->all();

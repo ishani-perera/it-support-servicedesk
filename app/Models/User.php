@@ -106,6 +106,11 @@ class User extends Authenticatable
         return $this->role?->isAdmin() ?? false;
     }
 
+    public function isTechnician(): bool
+    {
+        return $this->role?->isTechnician() ?? false;
+    }
+
     /**
      * IT staff = support or admin.
      */
@@ -158,6 +163,16 @@ class User extends Authenticatable
     public function scopeStaff(Builder $query): void
     {
         $query->whereIn('role', UserRole::staff());
+    }
+
+    /**
+     * Technicians only; this scope does not alter the existing staff scope.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeTechnicians(Builder $query): void
+    {
+        $query->where('role', UserRole::Technician);
     }
 
     /* ---------------------------------------------------------------------
@@ -232,5 +247,25 @@ class User extends Authenticatable
     public function createdAssignments(): HasMany
     {
         return $this->hasMany(TicketAssignment::class, 'assigned_by');
+    }
+
+    /**
+     * Work reports this user started as a Technician.
+     *
+     * @return HasMany<TicketWorkReport, $this>
+     */
+    public function startedWorkReports(): HasMany
+    {
+        return $this->hasMany(TicketWorkReport::class, 'started_by');
+    }
+
+    /**
+     * Work reports this user reviewed.
+     *
+     * @return HasMany<TicketWorkReport, $this>
+     */
+    public function reviewedWorkReports(): HasMany
+    {
+        return $this->hasMany(TicketWorkReport::class, 'reviewed_by');
     }
 }

@@ -9,9 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 class EnumsTest extends TestCase
 {
-    public function test_user_role_has_exactly_the_three_roles(): void
+    public function test_user_role_values_include_existing_roles_and_technician(): void
     {
-        $this->assertSame(['employee', 'support', 'admin'], UserRole::values());
+        $this->assertSame(['employee', 'support', 'admin', 'technician'], UserRole::values());
     }
 
     public function test_user_role_helpers(): void
@@ -28,12 +28,19 @@ class EnumsTest extends TestCase
         $this->assertFalse(UserRole::Admin->isEmployee());
 
         $this->assertEqualsCanonicalizing([UserRole::Support, UserRole::Admin], UserRole::staff());
+        $this->assertTrue(UserRole::Technician->isTechnician());
+        $this->assertFalse(UserRole::Technician->isStaff());
+        $this->assertTrue(UserRole::Technician->canBeAssignedTickets());
+        $this->assertEqualsCanonicalizing(
+            [UserRole::Support, UserRole::Admin, UserRole::Technician],
+            UserRole::ticketAssignees()
+        );
     }
 
     public function test_exactly_one_role_helper_is_true_for_every_role(): void
     {
         foreach (UserRole::cases() as $role) {
-            $this->assertSame(1, (int) $role->isEmployee() + (int) $role->isSupport() + (int) $role->isAdmin());
+            $this->assertSame(1, (int) $role->isEmployee() + (int) $role->isSupport() + (int) $role->isAdmin() + (int) $role->isTechnician());
             $this->assertNotSame('', $role->label());
         }
     }

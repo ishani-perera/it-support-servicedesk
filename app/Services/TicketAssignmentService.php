@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\DB;
  *  - close + open happen in one transaction while the ticket row is locked, so
  *    concurrent reassignments serialise (the database's unique index on
  *    ticket_id + is_current is the final safety net);
- *  - assignee and assigner must be ACTIVE IT staff (support or admin).
+ *  - the assignee must be active Support/Admin or Technician; the assigner
+ *    must be active Support/Admin.
  */
 class TicketAssignmentService
 {
@@ -42,7 +43,7 @@ class TicketAssignmentService
         ?string $note = null,
         ?CarbonInterface $at = null,
     ): TicketAssignment {
-        $this->ensureActiveStaff($assignee, 'assignee');
+        $this->ensureActiveAssignee($assignee);
         $this->ensureActiveStaff($assigner, 'assigner');
 
         $at ??= now();
@@ -132,6 +133,18 @@ class TicketAssignmentService
         if (! $user->is_active || ! $user->isStaff()) {
             throw new InvalidAssignmentException(
                 "The {$label} must be an active IT Support or Admin user."
+            );
+        }
+    }
+
+    /**
+     * @throws InvalidAssignmentException
+     */
+    private function ensureActiveAssignee(User $user): void
+    {
+        if (! $user->is_active || ! $user->role?->canBeAssignedTickets()) {
+            throw new InvalidAssignmentException(
+                'The assignee must be an active IT Support, Admin, or Technician user.'
             );
         }
     }

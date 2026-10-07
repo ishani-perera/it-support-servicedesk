@@ -17,7 +17,7 @@ class AssignTicketRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assigned_to' => ['required', 'integer', Rule::exists('users', 'id')->where('is_active', true)->whereIn('role', array_map(fn (UserRole $role) => $role->value, UserRole::staff()))],
+            'assigned_to' => ['required', 'integer', Rule::exists('users', 'id')->where('is_active', true)->whereIn('role', array_map(fn (UserRole $role) => $role->value, UserRole::ticketAssignees()))],
             'note' => ['nullable', 'string', 'max:500'],
         ];
     }

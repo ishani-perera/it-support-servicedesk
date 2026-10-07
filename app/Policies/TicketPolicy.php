@@ -52,10 +52,10 @@ class TicketPolicy
         };
     }
 
-    /** Any active user may raise a ticket (it is always owned by its creator). */
+    /** Existing Employee, Support, and Admin roles may raise a ticket. */
     public function create(User $user): bool
     {
-        return true;
+        return $user->isEmployee() || $user->isSupport() || $user->isAdmin();
     }
 
     /** Edit core fields (title, description, category...). Staff only. */

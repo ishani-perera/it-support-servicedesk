@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TicketAssignment extends Model
 {
@@ -79,7 +80,7 @@ class TicketAssignment extends Model
     }
 
     /**
-     * The staff user the ticket was assigned to.
+     * The staff member or Technician the ticket was assigned to.
      *
      * @return BelongsTo<User, $this>
      */
@@ -96,5 +97,15 @@ class TicketAssignment extends Model
     public function assigner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by')->withTrashed();
+    }
+
+    /**
+     * Work reports belonging to this exact assignment-history row.
+     *
+     * @return HasMany<TicketWorkReport, $this>
+     */
+    public function workReports(): HasMany
+    {
+        return $this->hasMany(TicketWorkReport::class, 'ticket_assignment_id');
     }
 }

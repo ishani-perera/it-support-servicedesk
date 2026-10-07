@@ -10,6 +10,7 @@ use App\Models\TicketCategory;
 use App\Models\TicketComment;
 use App\Models\TicketPriority;
 use App\Models\TicketStatus;
+use App\Models\TicketWorkReport;
 use App\Models\User;
 use App\Policies;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,6 +51,7 @@ class RelatedPoliciesTest extends TestCase
             TicketComment::class => Policies\TicketCommentPolicy::class,
             TicketAttachment::class => Policies\TicketAttachmentPolicy::class,
             TicketAssignment::class => Policies\TicketAssignmentPolicy::class,
+            TicketWorkReport::class => Policies\TicketWorkReportPolicy::class,
             User::class => Policies\UserPolicy::class,
             Department::class => Policies\DepartmentPolicy::class,
             TicketCategory::class => Policies\TicketCategoryPolicy::class,
@@ -206,6 +208,18 @@ class RelatedPoliciesTest extends TestCase
         $this->assertTrue($assign($this->supportOne, $this->ticketQueueB));
         $this->assertFalse($assign($this->supportOne, $this->ticketB));
         $this->assertTrue($assign($this->admin, $this->ticketB));
+    }
+
+    public function test_work_report_access_remains_closed_until_its_workflow_is_implemented(): void
+    {
+        $assignment = $this->ticketA->assignments()->firstOrFail();
+        $report = $assignment->workReports()->create();
+
+        foreach ([$this->employeeA, $this->supportOne, $this->admin] as $user) {
+            $this->assertFalse($this->can($user, 'view', $report));
+            $this->assertFalse($this->can($user, 'update', $report));
+            $this->assertFalse($this->can($user, 'delete', $report));
+        }
     }
 
     /* ----- users ----- */

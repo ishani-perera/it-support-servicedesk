@@ -37,9 +37,9 @@ class CreateUserRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if (in_array($this->input('role'), [UserRole::Employee->value, UserRole::Support->value], true)
+            if (in_array($this->input('role'), [UserRole::Employee->value, UserRole::Support->value, UserRole::Technician->value], true)
                 && ! $this->filled('department_id')) {
-                $validator->errors()->add('department_id', 'Employees and IT Support users need an active department.');
+                $validator->errors()->add('department_id', 'Employees, IT Support users, and Technicians need an active department.');
             }
         });
     }

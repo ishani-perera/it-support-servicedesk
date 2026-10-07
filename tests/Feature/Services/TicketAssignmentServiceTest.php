@@ -50,6 +50,20 @@ class TicketAssignmentServiceTest extends TestCase
         $this->assertTrue($ticket->fresh()->currentAssignment->is($assignment));
     }
 
+    public function test_technician_can_be_assigned_and_reassignment_keeps_both_history_rows(): void
+    {
+        $ticket = $this->makeTicket();
+        $technician = User::factory()->technician()->inDepartment($this->agentA->department_id)->create();
+
+        $technicianAssignment = $this->service->assign($ticket, $technician, $this->admin);
+        $supportAssignment = $this->service->assign($ticket, $this->agentB, $this->admin);
+
+        $this->assertSame($technician->id, $technicianAssignment->assigned_to);
+        $this->assertFalse($technicianAssignment->fresh()->isCurrent());
+        $this->assertSame($this->agentB->id, $supportAssignment->assigned_to);
+        $this->assertSame(2, $ticket->assignments()->count());
+    }
+
     public function test_reassigning_closes_the_previous_row_and_keeps_history(): void
     {
         $ticket = $this->makeTicket();
@@ -106,13 +120,14 @@ class TicketAssignmentServiceTest extends TestCase
         $this->assertNull($this->service->unassign($ticket), 'Nothing left to close');
     }
 
-    public function test_assignee_must_be_active_it_staff(): void
+    public function test_assignee_must_be_active_staff_or_technician(): void
     {
         $ticket = $this->makeTicket();
         $employee = $this->makeUser(UserRole::Employee);
         $inactive = User::factory()->support()->inactive()->create();
+        $inactiveTechnician = User::factory()->technician()->inactive()->create();
 
-        foreach ([$employee, $inactive] as $invalid) {
+        foreach ([$employee, $inactive, $inactiveTechnician] as $invalid) {
             try {
                 $this->service->assign($ticket, $invalid, $this->admin);
                 $this->fail('An invalid assignee was accepted');

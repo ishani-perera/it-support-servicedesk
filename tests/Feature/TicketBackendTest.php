@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\TicketPriority;
 use App\Models\TicketStatus;
+use App\Models\User;
 use App\Services\TicketAssignmentManager;
 use App\Services\TicketWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -95,6 +96,17 @@ class TicketBackendTest extends TestCase
         $manager->assign($this->ticketA, $this->supportTwo, $this->admin);
         $this->assertSame(2, $this->ticketA->assignments()->count());
         $this->assertSame(1, $this->ticketA->assignments()->current()->count());
+    }
+
+    public function test_admin_can_assign_ticket_to_a_technician_through_existing_assignment_route(): void
+    {
+        $technician = User::factory()->technician()->inDepartment($this->supportOne->department_id)->create();
+
+        $this->actingAs($this->admin)->postJson('/tickets/'.$this->ticketA->id.'/assignments', [
+            'assigned_to' => $technician->id,
+        ])->assertCreated()->assertJsonPath('data.assigned_to', $technician->id);
+
+        $this->assertSame($technician->id, $this->ticketA->fresh()->currentAssignment->assigned_to);
     }
 
     public function test_internal_comments_are_hidden_from_employee_ticket_details(): void

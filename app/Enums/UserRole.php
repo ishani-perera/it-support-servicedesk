@@ -14,6 +14,7 @@ enum UserRole: string
     case Employee = 'employee';
     case Support = 'support';
     case Admin = 'admin';
+    case Technician = 'technician';
 
     /**
      * Human readable label for UI display.
@@ -24,6 +25,7 @@ enum UserRole: string
             self::Employee => 'Employee',
             self::Support => 'IT Support',
             self::Admin => 'Administrator',
+            self::Technician => 'Technician',
         };
     }
 
@@ -42,6 +44,21 @@ enum UserRole: string
         return $this === self::Admin;
     }
 
+    public function isTechnician(): bool
+    {
+        return $this === self::Technician;
+    }
+
+    /**
+     * Whether this role can receive ticket assignments.
+     * Technician is deliberately not included in isStaff(): existing support
+     * authorization and visibility rules remain limited to Support/Admin.
+     */
+    public function canBeAssignedTickets(): bool
+    {
+        return $this->isStaff() || $this->isTechnician();
+    }
+
     /**
      * Whether this role is IT staff (support or admin).
      */
@@ -58,6 +75,16 @@ enum UserRole: string
     public static function staff(): array
     {
         return array_values(array_filter(self::cases(), fn (self $role) => $role->isStaff()));
+    }
+
+    /**
+     * Active Support/Admin users and Technicians may be assignment targets.
+     *
+     * @return list<self>
+     */
+    public static function ticketAssignees(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $role) => $role->canBeAssignedTickets()));
     }
 
     /**

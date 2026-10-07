@@ -58,6 +58,11 @@ class UserFactory extends Factory
         return $this->role(UserRole::Support);
     }
 
+    public function technician(): static
+    {
+        return $this->role(UserRole::Technician);
+    }
+
     public function admin(): static
     {
         return $this->role(UserRole::Admin);

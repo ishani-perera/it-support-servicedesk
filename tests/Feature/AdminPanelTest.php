@@ -83,6 +83,17 @@ class AdminPanelTest extends TestCase
         $this->assertSame(UserRole::Support, $created->role);
         $this->assertNotSame('StrongPassword1', $created->getAuthPassword());
 
+        $this->actAs($this->admin)->postJson('/admin/users', [
+            'name' => 'New Technician', 'email' => 'new-technician@example.test', 'password' => 'StrongPassword1',
+            'password_confirmation' => 'StrongPassword1', 'role' => UserRole::Technician->value,
+            'department_id' => Department::where('name', 'IT')->value('id'),
+        ])->assertCreated();
+        $technician = User::where('email', 'new-technician@example.test')->firstOrFail();
+        $this->assertSame(UserRole::Technician, $technician->role);
+        $this->actAs($this->admin)->patchJson('/admin/users/'.$technician->id, [
+            'role' => UserRole::Employee->value,
+        ])->assertOk()->assertJsonPath('data.role', UserRole::Employee->value);
+
         $this->actAs($this->admin)->patchJson('/admin/users/'.$this->admin->id, ['role' => UserRole::Employee->value])->assertForbidden();
         $this->actAs($this->admin)->patchJson('/admin/users/'.$this->admin->id, ['is_active' => false])->assertForbidden();
         $this->assertTrue($this->admin->fresh()->is_active);
