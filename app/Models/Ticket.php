@@ -182,7 +182,7 @@ class Ticket extends Model
      *  - employee: tickets they requested
      *  - support:  all tickets (view access is shared across the support team)
      *  - admin:    everything
-     *  - technician: no ticket page access until its workflow is implemented
+     *  - technician: tickets currently assigned to them
      *  - inactive users: nothing
      *
      * @param  Builder<Ticket>  $query
@@ -199,6 +199,7 @@ class Ticket extends Model
             $user->isAdmin() => null,
             $user->isSupport() => null,
             $user->isEmployee() => $query->createdBy($user),
+            $user->isTechnician() => $query->assignedTo($user),
             default => $query->whereRaw('1 = 0'),
         };
     }

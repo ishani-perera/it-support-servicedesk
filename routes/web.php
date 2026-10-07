@@ -17,6 +17,7 @@ use App\Http\Controllers\SupportDashboardController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketCommentController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\TicketWorkReportController;
 use App\Services\TicketQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -94,7 +95,14 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::patch('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
     Route::patch('tickets/{ticket}/status', [TicketController::class, 'status'])->name('tickets.status');
     Route::post('tickets/{ticket}/assignments', [TicketController::class, 'assign'])->name('tickets.assignments.store');
+    Route::post('tickets/{ticket}/technician-assignment', [TicketWorkReportController::class, 'assignTechnician'])->name('tickets.technician-assignment.store');
     Route::delete('tickets/{ticket}/assignments/current', [TicketController::class, 'unassign'])->name('tickets.assignments.destroy');
+    Route::get('tickets/{ticket}/work-reports', [TicketWorkReportController::class, 'index'])->name('tickets.work-reports.index');
+    Route::post('tickets/{ticket}/work/start', [TicketWorkReportController::class, 'start'])->name('tickets.work.start');
+    Route::post('tickets/{ticket}/work/request-information', [TicketWorkReportController::class, 'requestInformation'])->name('tickets.work.request-information');
+    Route::post('tickets/{ticket}/work/complete', [TicketWorkReportController::class, 'complete'])->name('tickets.work.complete');
+    Route::post('tickets/{ticket}/work/approve', [TicketWorkReportController::class, 'approve'])->name('tickets.work.approve');
+    Route::post('tickets/{ticket}/work/send-back', [TicketWorkReportController::class, 'sendBack'])->name('tickets.work.send-back');
     Route::post('tickets/{ticket}/comments', [TicketCommentController::class, 'store'])->name('tickets.comments.store');
     Route::post('tickets/{ticket}/attachments', [TicketAttachmentController::class, 'store'])->name('tickets.attachments.store');
 

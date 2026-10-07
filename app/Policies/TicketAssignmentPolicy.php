@@ -20,11 +20,14 @@ class TicketAssignmentPolicy
 
     public function view(User $user, TicketAssignment $assignment): bool
     {
+        $ticket = $assignment->relationLoaded('ticket') ? $assignment->ticket : $assignment->ticket()->firstOrFail();
+
+        if ($user->isTechnician()) {
+            return $assignment->assigned_to === $user->getKey() && $user->can('view', $ticket);
+        }
         if (! $user->isStaff()) {
             return false;
         }
-
-        $ticket = $assignment->relationLoaded('ticket') ? $assignment->ticket : $assignment->ticket()->firstOrFail();
 
         return $user->can('view', $ticket);
     }

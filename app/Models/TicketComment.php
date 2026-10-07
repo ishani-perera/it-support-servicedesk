@@ -63,7 +63,7 @@ class TicketComment extends Model
      */
     public function scopeVisibleTo(Builder $query, User $viewer): void
     {
-        if (! $viewer->isStaff()) {
+        if (! $viewer->isStaff() && ! $viewer->isTechnician()) {
             $query->where('is_internal', false);
         }
     }

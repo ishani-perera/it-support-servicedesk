@@ -34,6 +34,7 @@ class TicketResource extends JsonResource
 
         $data['comments'] = TicketCommentResource::collection($this->whenLoaded('comments'));
         $data['attachments'] = TicketAttachmentResource::collection($this->whenLoaded('attachments'));
+        $data['work_reports'] = TicketWorkReportResource::collection($this->whenLoaded('workReports'));
 
         return $data;
     }

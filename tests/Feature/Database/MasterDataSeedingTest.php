@@ -66,11 +66,11 @@ class MasterDataSeedingTest extends TestCase
         $statuses = TicketStatus::ordered()->get();
 
         $this->assertSame(
-            ['Open', 'Assigned', 'In Progress', 'Waiting for User', 'Resolved', 'Closed'],
+            ['Open', 'Assigned', 'In Progress', 'Waiting for User', 'Resolved', 'IT Support Review', 'Closed'],
             $statuses->pluck('name')->all()
         );
         $this->assertSame(
-            ['open', 'assigned', 'in_progress', 'waiting_for_user', 'resolved', 'closed'],
+            ['open', 'assigned', 'in_progress', 'waiting_for_user', 'resolved', 'it_support_review', 'closed'],
             $statuses->pluck('slug')->all()
         );
         $this->assertSame(TicketStatusSlug::values(), $statuses->pluck('slug')->all());
@@ -101,7 +101,7 @@ class MasterDataSeedingTest extends TestCase
         $this->assertSame(7, Department::count());
         $this->assertSame(9, TicketCategory::count());
         $this->assertSame(4, TicketPriority::count());
-        $this->assertSame(6, TicketStatus::count());
+        $this->assertSame(7, TicketStatus::count());
     }
 
     public function test_master_data_seeders_do_not_create_user_accounts(): void

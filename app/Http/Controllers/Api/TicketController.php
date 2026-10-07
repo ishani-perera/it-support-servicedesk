@@ -16,6 +16,7 @@ use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
 use App\Models\User;
+use App\Services\TechnicianWorkflowService;
 use App\Services\TicketAssignmentManager;
 use App\Services\TicketAttachmentService;
 use App\Services\TicketQueryService;
@@ -53,10 +54,11 @@ class TicketController extends Controller
         return (new TicketResource($ticket->load(['user', 'department', 'category', 'priority', 'status', 'currentAssignment.assignee'])))->response()->setStatusCode(201);
     }
 
-    public function show(Ticket $ticket): TicketResource
+    public function show(Ticket $ticket, TechnicianWorkflowService $technicianWorkflow): TicketResource
     {
         $this->authorize('view', $ticket);
         $ticket->load(['user', 'department', 'category', 'priority', 'status', 'currentAssignment.assignee']);
+        $ticket->setRelation('workReports', $technicianWorkflow->reportsVisibleTo($ticket, request()->user()));
 
         return new TicketResource($ticket);
     }
@@ -116,7 +118,7 @@ class TicketController extends Controller
     {
         $this->authorize('view', $ticket);
         $query = $ticket->attachments()->with(['uploader', 'comment']);
-        if (! $request->user()->isStaff()) {
+        if (! $request->user()->isStaff() && ! $request->user()->isTechnician()) {
             $query->where(function ($builder): void {
                 $builder->whereNull('comment_id')->orWhereHas('comment', fn ($comments) => $comments->where('is_internal', false));
             });

@@ -48,7 +48,7 @@ class EnumsTest extends TestCase
     public function test_status_slugs_match_the_required_workflow_and_are_consistent(): void
     {
         $this->assertSame(
-            ['open', 'assigned', 'in_progress', 'waiting_for_user', 'resolved', 'closed'],
+            ['open', 'assigned', 'in_progress', 'waiting_for_user', 'resolved', 'it_support_review', 'closed'],
             TicketStatusSlug::values()
         );
 

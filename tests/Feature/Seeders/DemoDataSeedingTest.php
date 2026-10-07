@@ -39,7 +39,7 @@ class DemoDataSeedingTest extends TestCase
         $this->assertSame(7, Department::count());
         $this->assertSame(9, TicketCategory::count());
         $this->assertSame(4, TicketPriority::count());
-        $this->assertSame(6, TicketStatus::count());
+        $this->assertSame(7, TicketStatus::count());
     }
 
     /* --------------------------------- users --------------------------------- */
@@ -180,7 +180,14 @@ class DemoDataSeedingTest extends TestCase
             $assigned = $ticket->currentAssignment !== null;
 
             $this->assertSame(
-                $ticket->status->slug !== TicketStatusSlug::Open->value,
+                in_array($ticket->status->slug, [
+                    TicketStatusSlug::Assigned->value,
+                    TicketStatusSlug::InProgress->value,
+                    TicketStatusSlug::WaitingForUser->value,
+                    TicketStatusSlug::Resolved->value,
+                    TicketStatusSlug::ItSupportReview->value,
+                    TicketStatusSlug::Closed->value,
+                ], true),
                 $assigned,
                 "{$ticket->ticket_number}: only Open tickets are unassigned"
             );

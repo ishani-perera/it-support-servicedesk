@@ -23,6 +23,7 @@ enum TicketStatusSlug: string
     case InProgress = 'in_progress';
     case WaitingForUser = 'waiting_for_user';
     case Resolved = 'resolved';
+    case ItSupportReview = 'it_support_review';
     case Closed = 'closed';
 
     public function label(): string
@@ -33,6 +34,7 @@ enum TicketStatusSlug: string
             self::InProgress => 'In Progress',
             self::WaitingForUser => 'Waiting for User',
             self::Resolved => 'Resolved',
+            self::ItSupportReview => 'IT Support Review',
             self::Closed => 'Closed',
         };
     }
@@ -41,10 +43,11 @@ enum TicketStatusSlug: string
     {
         return match ($this) {
             self::Open => 'Ticket has been submitted and is awaiting triage.',
-            self::Assigned => 'Ticket has been assigned to an IT Support staff member.',
+            self::Assigned => 'Ticket has been assigned to IT Support or a Technician.',
             self::InProgress => 'IT Support is actively working on the ticket.',
             self::WaitingForUser => 'IT Support is waiting for a response or action from the requester.',
             self::Resolved => 'A resolution has been provided and is awaiting confirmation.',
+            self::ItSupportReview => 'Technician work is complete and awaiting IT Support review.',
             self::Closed => 'Ticket is complete and no further action is required.',
         };
     }
@@ -60,6 +63,7 @@ enum TicketStatusSlug: string
             self::InProgress => '#F59E0B',
             self::WaitingForUser => '#F97316',
             self::Resolved => '#10B981',
+            self::ItSupportReview => '#6366F1',
             self::Closed => '#6B7280',
         };
     }
@@ -75,7 +79,8 @@ enum TicketStatusSlug: string
             self::InProgress => 3,
             self::WaitingForUser => 4,
             self::Resolved => 5,
-            self::Closed => 6,
+            self::ItSupportReview => 6,
+            self::Closed => 7,
         };
     }
 

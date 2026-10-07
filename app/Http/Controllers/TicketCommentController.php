@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTicketCommentRequest;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Services\TicketNotificationService;
+use App\Services\TicketWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -16,16 +17,19 @@ use Illuminate\Support\Facades\DB;
  */
 class TicketCommentController extends Controller
 {
-    public function store(StoreTicketCommentRequest $request, Ticket $ticket, TicketNotificationService $notifications): JsonResponse|RedirectResponse
+    public function store(StoreTicketCommentRequest $request, Ticket $ticket, TicketNotificationService $notifications, TicketWorkflowService $workflow): JsonResponse|RedirectResponse
     {
-        $comment = DB::transaction(function () use ($request, $ticket, $notifications) {
+        $comment = DB::transaction(function () use ($request, $ticket, $notifications, $workflow) {
             $comment = $ticket->comments()->create([
                 'user_id' => $request->user()->getKey(),
                 'body' => $request->validated('body'),
-                'is_internal' => $request->user()->isStaff() && $request->boolean('is_internal'),
+                'is_internal' => ($request->user()->isStaff() || $request->user()->isTechnician()) && $request->boolean('is_internal'),
             ]);
 
             if (! $comment->is_internal) {
+                if ($request->user()->isEmployee()) {
+                    $workflow->resumeForRequesterReply($ticket, $request->user());
+                }
                 $notifications->publicCommentAdded($ticket, $request->user());
             }
 

@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Enums\TicketStatusSlug;
 use App\Models\Ticket;
+use App\Models\TicketStatus;
 use App\Models\User;
 use App\Services\TicketAssignmentService;
 use Carbon\CarbonImmutable;
@@ -45,6 +47,11 @@ class DemoAssignmentSeeder extends Seeder
                         $note,
                         CarbonImmutable::parse($at, 'UTC'),
                     );
+                }
+
+                if ($data['status'] === TicketStatusSlug::ItSupportReview) {
+                    $ticket->status_id = TicketStatus::forSlug(TicketStatusSlug::ItSupportReview)->getKey();
+                    $ticket->save();
                 }
             }
         });

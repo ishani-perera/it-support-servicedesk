@@ -76,7 +76,7 @@ class TicketNotificationsAndSlaTest extends TestCase
         ])->assertCreated();
         $employeeNotification = $this->employeeA->notifications()->firstOrFail();
         $this->assertSame('IT Support replied', $employeeNotification->data['title']);
-        $this->assertSame('IT Support added a public response to your ticket.', $employeeNotification->data['message']);
+        $this->assertSame('A public response was added to your ticket.', $employeeNotification->data['message']);
         $this->assertArrayNotHasKey('body', $employeeNotification->data);
 
         $this->actAs($this->supportOne)->postJson('/tickets/'.$this->ticketA->id.'/comments', [

@@ -210,13 +210,15 @@ class RelatedPoliciesTest extends TestCase
         $this->assertTrue($assign($this->admin, $this->ticketB));
     }
 
-    public function test_work_report_access_remains_closed_until_its_workflow_is_implemented(): void
+    public function test_work_report_access_is_limited_to_it_support_and_its_technician(): void
     {
-        $assignment = $this->ticketA->assignments()->firstOrFail();
+        $technician = User::factory()->technician()->inDepartment($this->supportOne->department_id)->create();
+        $ticket = $this->makeTicket($this->employeeA);
+        $assignment = $this->makeAssignment($ticket, $technician, $this->admin);
         $report = $assignment->workReports()->create();
 
-        foreach ([$this->employeeA, $this->supportOne, $this->admin] as $user) {
-            $this->assertFalse($this->can($user, 'view', $report));
+        foreach ([$this->employeeA, $this->supportOne, $this->admin, $technician] as $user) {
+            $this->assertSame($user->is($this->employeeA) ? false : true, $this->can($user, 'view', $report));
             $this->assertFalse($this->can($user, 'update', $report));
             $this->assertFalse($this->can($user, 'delete', $report));
         }

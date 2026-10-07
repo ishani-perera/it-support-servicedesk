@@ -330,6 +330,16 @@ final class DemoTicketData
 
             // ────────────────────────────── OPEN ──────────────────────────────
             [
+                'n' => 27, 'by' => 'employee3@example.com', 'category' => 'Hardware', 'priority' => P::High, 'status' => S::ItSupportReview,
+                'title' => 'Docking station disconnects external displays',
+                'description' => 'Both external monitors disconnect intermittently when the laptop is docked. The issue persists after restarting and reconnecting the cables.',
+                'created' => '2026-10-01 08:30', 'resolved' => null,
+                'assignments' => [[self::SUP2, self::ADMIN, '2026-10-01 08:50', 'Technical work completed; awaiting IT Support review.']],
+                'comments' => [
+                    [self::SUP2, '2026-10-01 09:10', 'The docking station firmware was updated and both displays are stable during testing. I am sending this for review.'],
+                ],
+            ],
+            [
                 'n' => 22, 'by' => 'employee6@example.com', 'category' => 'Other', 'priority' => P::Low, 'status' => S::Open,
                 'title' => 'Request for a second monitor for design work',
                 'description' => 'I would like a second 27-inch monitor for my desk. My manager has approved the request for the design workload.',

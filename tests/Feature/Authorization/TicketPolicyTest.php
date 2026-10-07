@@ -85,13 +85,22 @@ class TicketPolicyTest extends TestCase
         }
     }
 
-    public function test_technician_ticket_access_remains_denied_until_a_workflow_is_added(): void
+    public function test_technician_can_view_only_tickets_currently_assigned_to_them(): void
     {
-        $technician = User::factory()->technician()->create();
+        $technician = User::factory()->technician()->inDepartment($this->supportOne->department_id)->create();
+        $otherTechnician = User::factory()->technician()->create();
+        $assigned = $this->makeTicket($this->employeeA);
+        $unassigned = $this->makeTicket($this->employeeB);
+        $this->makeAssignment($assigned, $technician, $this->admin);
+        $this->makeAssignment($unassigned, $otherTechnician, $this->admin);
 
         $this->assertFalse(Gate::forUser($technician)->allows('create', Ticket::class));
-        $this->assertSame([], Ticket::query()->visibleTo($technician)->pluck('id')->all());
-        $this->assertFalse($this->allows($technician, 'view', $this->ticketA));
+        $this->assertSame([$assigned->id], Ticket::query()->visibleTo($technician)->pluck('id')->all());
+        $this->assertTrue($this->allows($technician, 'view', $assigned));
+        $this->assertTrue($this->allows($technician, 'addInternalNote', $assigned));
+        $this->assertFalse($this->allows($technician, 'view', $unassigned));
+        $this->assertFalse($this->allows($technician, 'assign', $assigned));
+        $this->assertFalse($this->allows($technician, 'updateStatus', $assigned));
     }
 
     public function test_deactivated_users_are_denied_every_ability_even_admins(): void

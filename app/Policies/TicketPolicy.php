@@ -15,7 +15,10 @@ use App\Models\User;
  *  - Support:  may view all tickets for shared team visibility, including
  *    internal notes and attachments. They may change status/priority and
  *    core fields only on tickets assigned to them. Assignment controls remain
- *    limited to their own tickets and the unassigned queue.
+ *    limited to their own tickets, the unassigned queue, and Technician handoffs
+ *    they initiated.
+ *  - Technician: only tickets currently assigned to them; work actions use
+ *    dedicated abilities instead of generic ticket updates.
  *  - Admin:    everything.
  *
  * Design notes
@@ -48,6 +51,7 @@ class TicketPolicy
             $user->isAdmin() => true,
             $user->isSupport() => true,
             $user->isEmployee() => $this->isRequester($user, $ticket),
+            $user->isTechnician() => $this->isAssignedTo($user, $ticket),
             default => false,
         };
     }
@@ -83,7 +87,7 @@ class TicketPolicy
     {
         return match (true) {
             $user->isAdmin() => true,
-            $user->isSupport() => $this->inSupportScope($user, $ticket),
+            $user->isSupport() => $this->inSupportScope($user, $ticket) || $this->technicianAssignmentCreatedBy($user, $ticket),
             default => false,
         };
     }
@@ -95,6 +99,7 @@ class TicketPolicy
             $user->isAdmin() => true,
             $user->isSupport() => $this->inSupportScope($user, $ticket),
             $user->isEmployee() => $this->isRequester($user, $ticket),
+            $user->isTechnician() => $this->isAssignedTo($user, $ticket),
             default => false,
         };
     }
@@ -102,13 +107,33 @@ class TicketPolicy
     /** Add an internal note (never visible to the requester). Staff only. */
     public function addInternalNote(User $user, Ticket $ticket): bool
     {
-        return $user->isStaff() && $this->comment($user, $ticket);
+        return ($user->isStaff() || $user->isTechnician()) && $this->comment($user, $ticket);
     }
 
     /** Whether internal notes (and attachments on them) may be seen. Staff only. */
     public function viewInternalNotes(User $user, Ticket $ticket): bool
     {
-        return $user->isStaff() && $this->view($user, $ticket);
+        return ($user->isStaff() || $user->isTechnician()) && $this->view($user, $ticket);
+    }
+
+    public function startWork(User $user, Ticket $ticket): bool
+    {
+        return $user->isTechnician() && $this->isAssignedTo($user, $ticket);
+    }
+
+    public function requestInformation(User $user, Ticket $ticket): bool
+    {
+        return $user->isTechnician() && $this->isAssignedTo($user, $ticket);
+    }
+
+    public function completeWork(User $user, Ticket $ticket): bool
+    {
+        return $user->isTechnician() && $this->isAssignedTo($user, $ticket);
+    }
+
+    public function reviewWork(User $user, Ticket $ticket): bool
+    {
+        return ($user->isSupport() || $user->isAdmin()) && $this->view($user, $ticket);
     }
 
     public function uploadAttachment(User $user, Ticket $ticket): bool
@@ -144,6 +169,22 @@ class TicketPolicy
     private function isAssignedTo(User $user, Ticket $ticket): bool
     {
         return $ticket->assignments()->current()->where('assigned_to', $user->getKey())->exists();
+    }
+
+    private function assignedToTechnician(Ticket $ticket): bool
+    {
+        $assignee = $ticket->currentAssignment()->with('assignee')->first()?->assignee;
+
+        return $assignee?->isTechnician() ?? false;
+    }
+
+    /** Support may manage Technician assignments they personally handed off. */
+    private function technicianAssignmentCreatedBy(User $user, Ticket $ticket): bool
+    {
+        $assignment = $ticket->currentAssignment()->with('assignee')->first();
+
+        return $assignment?->assigned_by === $user->getKey()
+            && ($assignment->assignee?->isTechnician() ?? false);
     }
 
     private function isUnassigned(Ticket $ticket): bool

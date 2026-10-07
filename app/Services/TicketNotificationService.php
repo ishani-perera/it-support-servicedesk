@@ -56,7 +56,25 @@ class TicketNotificationService
             return;
         }
 
-        $this->send($ticket, $actor, collect([$ticket->user]), 'IT Support replied', 'IT Support added a public response to your ticket.');
+        $title = $actor->isTechnician() ? 'Technician replied' : 'IT Support replied';
+        $this->send($ticket, $actor, collect([$ticket->user]), $title, 'A public response was added to your ticket.');
+    }
+
+    public function informationRequested(Ticket $ticket, User $technician): void
+    {
+        $ticket->loadMissing('user');
+        $this->send($ticket, $technician, collect([$ticket->user]), 'More information needed', 'The Technician requested additional information on your ticket.');
+    }
+
+    public function workSubmittedForReview(Ticket $ticket, User $technician): void
+    {
+        $this->send($ticket, $technician, User::query()->active()->staff()->get(), 'Technician work ready for review', 'Completed technician work is waiting for IT Support review.');
+    }
+
+    public function workSentBack(Ticket $ticket, User $reviewer): void
+    {
+        $ticket->loadMissing('currentAssignment.assignee');
+        $this->send($ticket, $reviewer, collect([$ticket->currentAssignment?->assignee]), 'Work needs changes', 'IT Support returned your work report with a review note.');
     }
 
     /** @param iterable<User|null> $recipients */

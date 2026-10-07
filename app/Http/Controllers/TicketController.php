@@ -13,6 +13,7 @@ use App\Models\TicketCategory;
 use App\Models\TicketPriority;
 use App\Models\TicketStatus;
 use App\Models\User;
+use App\Services\TechnicianWorkflowService;
 use App\Services\TicketAssignmentManager;
 use App\Services\TicketAttachmentService;
 use App\Services\TicketQueryService;
@@ -178,7 +179,7 @@ class TicketController extends Controller
         return response()->json(['data' => ['id' => $ticket->id, 'current_assignment' => null]]);
     }
 
-    public function show(Request $request, Ticket $ticket, TicketSlaService $slaService, TicketWorkflowService $workflow): JsonResponse|View
+    public function show(Request $request, Ticket $ticket, TicketSlaService $slaService, TicketWorkflowService $workflow, TechnicianWorkflowService $technicianWorkflow): JsonResponse|View
     {
         $this->authorize('view', $ticket);
 
@@ -211,11 +212,12 @@ class TicketController extends Controller
         }
         $canViewCurrentAssignment = $currentAssignment && $request->user()->can('view', $currentAssignment);
         $assignments = collect();
-        if ($request->user()->isStaff()) {
+        if ($request->user()->isStaff() || $request->user()->isTechnician()) {
             $assignments = $ticket->assignments()->with(['assignee', 'assigner'])->oldest('assigned_at')->get();
             $assignments->each(fn ($assignment) => $assignment->setRelation('ticket', $ticket));
             $assignments = $assignments->filter(fn ($item) => $request->user()->can('view', $item))->values();
         }
+        $workReports = $technicianWorkflow->reportsVisibleTo($ticket, $request->user());
 
         return response()->json(['data' => [
             'id' => $ticket->id,
@@ -230,6 +232,21 @@ class TicketController extends Controller
             'current_assignment' => $canViewCurrentAssignment ? ['assignee' => $currentAssignment->assignee->name] : null,
             'comments' => $comments->map(fn ($comment) => ['id' => $comment->id, 'body' => $comment->body, 'is_internal' => $comment->is_internal, 'author' => $comment->user->name, 'created_at' => $comment->created_at]),
             'assignment_history' => $assignments->map(fn ($item) => ['assignee' => $item->assignee->name, 'assigner' => $item->assigner->name, 'assigned_at' => $item->assigned_at, 'unassigned_at' => $item->unassigned_at, 'note' => $item->note]),
+            'work_reports' => $workReports->map(fn ($report) => [
+                'id' => $report->id,
+                'assignment_id' => $report->ticket_assignment_id,
+                'technician' => $report->assignment->assignee->only(['id', 'name', 'employee_id']),
+                'started_by' => $report->startedBy?->only(['id', 'name']),
+                'work_started_at' => $report->work_started_at,
+                'work_completed_at' => $report->work_completed_at,
+                'work_summary' => $report->work_summary,
+                'root_cause' => $report->root_cause,
+                'technician_notes' => $report->technician_notes,
+                'review_status' => $report->review_status?->value,
+                'reviewed_by' => $report->reviewer?->only(['id', 'name']),
+                'reviewed_at' => $report->reviewed_at,
+                'review_note' => $report->review_note,
+            ]),
             'created_at' => $ticket->created_at,
         ]]);
     }

@@ -16,7 +16,7 @@ class TicketAttachmentService
 {
     public function store(Ticket $ticket, User $uploader, UploadedFile $file, ?TicketComment $comment = null): TicketAttachment
     {
-        if ($comment && ($comment->ticket_id !== $ticket->getKey() || ($comment->is_internal && ! $uploader->isStaff()))) {
+        if ($comment && ($comment->ticket_id !== $ticket->getKey() || ($comment->is_internal && ! $uploader->isStaff() && ! $uploader->isTechnician()))) {
             abort(404);
         }
 
