@@ -46,9 +46,10 @@ class DemoDataSeedingTest extends TestCase
 
     public function test_expected_demo_users_and_roles_exist(): void
     {
-        $this->assertSame(12, User::count());
+        $this->assertSame(13, User::count());
         $this->assertSame(1, User::admins()->count());
         $this->assertSame(3, User::supportAgents()->count());
+        $this->assertSame(1, User::where('role', UserRole::Technician)->count());
         $this->assertSame(8, User::employees()->count());
 
         $this->assertSame(UserRole::Admin, User::where('email', 'admin@example.com')->firstOrFail()->role);
@@ -56,6 +57,7 @@ class DemoDataSeedingTest extends TestCase
         foreach (range(1, 3) as $i) {
             $this->assertSame(UserRole::Support, User::where('email', "support{$i}@example.com")->firstOrFail()->role);
         }
+        $this->assertSame(UserRole::Technician, User::where('email', 'technician1@example.com')->firstOrFail()->role);
         foreach (range(1, 8) as $i) {
             $this->assertSame(UserRole::Employee, User::where('email', "employee{$i}@example.com")->firstOrFail()->role);
         }
@@ -63,10 +65,10 @@ class DemoDataSeedingTest extends TestCase
 
     public function test_all_demo_users_are_active_verified_and_have_a_department(): void
     {
-        $this->assertSame(12, User::active()->count());
+        $this->assertSame(13, User::active()->count());
         $this->assertSame(0, User::whereNull('department_id')->count());
         $this->assertSame(0, User::whereNull('email_verified_at')->count());
-        $this->assertSame(12, User::distinct()->count('employee_id'));
+        $this->assertSame(13, User::distinct()->count('employee_id'));
     }
 
     public function test_it_staff_belong_to_the_it_department_and_employees_do_not(): void
@@ -74,6 +76,7 @@ class DemoDataSeedingTest extends TestCase
         $it = Department::where('name', 'IT')->firstOrFail();
 
         $this->assertSame(4, User::staff()->where('department_id', $it->id)->count());
+        $this->assertSame(1, User::where('role', UserRole::Technician)->where('department_id', $it->id)->count());
         $this->assertSame(0, User::employees()->where('department_id', $it->id)->count());
         $this->assertGreaterThanOrEqual(4, User::employees()->distinct()->count('department_id'));
     }
@@ -338,7 +341,7 @@ class DemoDataSeedingTest extends TestCase
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(12, User::count());
+        $this->assertSame(13, User::count());
     }
 
     /* ------------------------------- production ------------------------------- */

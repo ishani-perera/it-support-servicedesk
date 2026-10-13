@@ -38,6 +38,8 @@ class DemoUserSeeder extends Seeder
         'support2@example.com' => ['Emily Chen', UserRole::Support, 'IT', 'EMP-1003', '+94 11 555 0103'],
         'support3@example.com' => ['Marcus Johnson', UserRole::Support, 'IT', 'EMP-1004', '+94 11 555 0104'],
 
+        'technician1@example.com' => ['Nimal Perera', UserRole::Technician, 'IT', 'EMP-1101', '+94 11 555 0111'],
+
         'employee1@example.com' => ['Priya Fernando', UserRole::Employee, 'Finance', 'EMP-2001', '+94 11 555 0201'],
         'employee2@example.com' => ['Daniel Perera', UserRole::Employee, 'Finance', 'EMP-2002', '+94 11 555 0202'],
         'employee3@example.com' => ['Amira Hassan', UserRole::Employee, 'HR', 'EMP-2003', '+94 11 555 0203'],

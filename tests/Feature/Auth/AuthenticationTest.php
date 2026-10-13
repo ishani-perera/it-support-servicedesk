@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\TicketAssignmentManager;
 use Database\Seeders\DemoUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsAuthScenario;
@@ -250,11 +251,31 @@ class AuthenticationTest extends TestCase
     {
         $this->seed(DemoUserSeeder::class);
 
-        foreach (['admin@example.com', 'support1@example.com', 'employee1@example.com'] as $email) {
+        foreach (['admin@example.com', 'support1@example.com', 'employee1@example.com', 'technician1@example.com'] as $email) {
             $this->post('/login', ['email' => $email, 'password' => DemoUserSeeder::DEV_PASSWORD])
                 ->assertRedirect('/home');
             $this->assertAuthenticated();
             $this->post('/logout');
         }
+    }
+
+    public function test_the_demo_technician_reaches_its_dashboard_and_only_sees_its_assigned_tickets(): void
+    {
+        $this->seed(DemoUserSeeder::class);
+        $technician = User::where('email', 'technician1@example.com')->firstOrFail();
+
+        app(TicketAssignmentManager::class)->assign($this->ticketA, $technician, $this->admin);
+
+        $this->post('/login', [
+            'email' => $technician->email,
+            'password' => DemoUserSeeder::DEV_PASSWORD,
+        ])->assertRedirect('/home');
+
+        $this->get('/home')->assertRedirect('/technician/dashboard');
+        $this->get('/technician/dashboard')->assertOk()->assertSee($this->ticketA->ticket_number)
+            ->assertDontSee($this->ticketB->ticket_number);
+        $this->get('/tickets')->assertOk()->assertSee($this->ticketA->ticket_number)
+            ->assertDontSee($this->ticketB->ticket_number);
+        $this->get('/tickets/'.$this->ticketB->id)->assertForbidden();
     }
 }
